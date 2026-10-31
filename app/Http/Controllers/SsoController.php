@@ -31,6 +31,7 @@ class SsoController extends Controller
                 ->get($this->ssoServerUrl . '/api/user');
 
             if (!$response->successful()) {
+                Log::warning('SSO SIPERDI: Token tidak valid', ['status' => $response->status()]);
                 return redirect()->route('login')->with('error', 'Token SSO tidak valid atau kadaluarsa.');
             }
 
@@ -41,10 +42,41 @@ class SsoController extends Controller
 
             $ssoUser = $data['user'];
 
-            // 2. Cari user di SIPERDI berdasarkan SSO ID (paling akurat)
+            // ========================================================
+            // LOG 1: DATA MENTAH DARI SSO
+            // ========================================================
+            Log::info('SSO SIPERDI: [1] Data User dari SSO', [
+                'username' => $ssoUser['username'] ?? 'null',
+                'role_global' => $ssoUser['role'] ?? 'null',
+                'apps' => $ssoUser['apps'] ?? [],
+            ]);
+
+            // ========================================================
+            // EKSTRAK ROLE DARI SSO UNTUK SIPERDI
+            // ========================================================
+            $roleFromSso = 'pegawai'; // Default
+            
+            // Jika Super Admin di SSO, paksa jadi pimpinan
+            if (isset($ssoUser['role']) && $ssoUser['role'] === 'super_admin') {
+                $roleFromSso = 'pegawai'; 
+            } 
+            elseif (isset($ssoUser['apps']) && is_array($ssoUser['apps'])) {
+                foreach ($ssoUser['apps'] as $app) {
+                    if (isset($app['slug']) && $app['slug'] === 'siperdi') {
+                        $roleFromSso = $app['role'] ?? 'pegawai';
+                        break;
+                    }
+                }
+            }
+
+            // ========================================================
+            // LOG 2: ROLE HASIL EKSTRAKSI
+            // ========================================================
+            Log::info('SSO SIPERDI: [2] Role yang akan diterapkan', ['role' => $roleFromSso]);
+
+            // 2. Cari user di SIPERDI
             $user = User::where('sso_id', (string) $ssoUser['id'])->first();
 
-            // Fallback: Cari berdasarkan email atau username (jika sso_id belum terisi)
             if (!$user && !empty($ssoUser['email'])) {
                 $user = User::where('email', $ssoUser['email'])->first();
             }
@@ -53,45 +85,73 @@ class SsoController extends Controller
             }
 
             // ========================================================
-            // AUTO-REGISTER & UPDATE (Menyesuaikan struktur tabel SIPERDI)
+            // AUTO-REGISTER & SINKRONISASI ROLE
             // ========================================================
             if ($user) {
-                // Jika user sudah ada tapi belum punya sso_id, update sso_id-nya
                 if (empty($user->sso_id)) {
-                    $user->update([
-                        'sso_id' => (string) $ssoUser['id'],
-                        'auth_provider' => 'sso'
-                    ]);
+                    $user->update(['sso_id' => (string) $ssoUser['id']]);
                 }
+                
+                // ====================================================
+                // LOG 3: SEBELUM SYNC
+                // ====================================================
+                Log::info('SSO SIPERDI: [3] Sebelum SyncRoles', [
+                    'user_id' => $user->id,
+                    'role_lama' => $user->getRoleNames()->toArray(),
+                    'role_baru' => $roleFromSso
+                ]);
+
+                // PAKSA SYNC ROLE
+                $user->syncRoles([$roleFromSso]);
+
+                // ====================================================
+                // LOG 4: SETELAH SYNC
+                // ====================================================
+                // Refresh model untuk memastikan data terbaru
+                $user->refresh();
+                Log::info('SSO SIPERDI: [4] Setelah SyncRoles', [
+                    'user_id' => $user->id,
+                    'role_sekarang' => $user->getRoleNames()->toArray(),
+                ]);
+
             } else {
-                // Jika user belum ada, buat baru.
-                // Perhatikan: NIP dan Username WAJIB di SIPERDI.
-                if (empty($ssoUser['nip']) || empty($ssoUser['username'])) {
-                    Log::error('SSO SIPERDI: Gagal auto-register. NIP atau Username kosong di SSO.');
-                    return redirect()->route('login')->with('error', 'Akun Anda di SSO belum memiliki NIP/Username. Hubungi Admin.');
-                }
+                $username = $ssoUser['username'] ?? explode('@', $ssoUser['email'] ?? 'user')[0] . $ssoUser['id'];
+                $nip = $ssoUser['nip'] ?? '999' . str_pad($ssoUser['id'], 12, '0', STR_PAD_LEFT);
+                $email = $ssoUser['email'] ?? $username . '@sso.local';
 
                 $user = User::create([
                     'name'          => $ssoUser['name'] ?? 'User SSO',
                     'sso_id'        => (string) $ssoUser['id'],
                     'auth_provider' => 'sso',
-                    'nip'           => $ssoUser['nip'],
-                    'username'      => $ssoUser['username'],
-                    'email'         => $ssoUser['email'] ?? $ssoUser['username'] . '@instansi.go.id', // email fallback jika kosong
-                    'password'      => null, // Boleh null karena kolom SIPERDI mengizinkan NULL
-                    'aktif'         => 1,    // Default aktif
-                    // 'divisi_id'  => 1,    // Opsional: Set default divisi jika wajib
-                    // 'jabatan_id' => 1,    // Opsional: Set default jabatan
-                    // 'golongan_id'=> 1,    // Opsional: Set default golongan
+                    'nip'           => $nip,
+                    'username'      => $username,
+                    'email'         => $email,
+                    'password'      => null,
+                    'aktif'         => 1,
+                    'divisi_id'     => 1, 
+                    'jabatan_id'    => 1,
+                    'golongan_id'   => 1,
                 ]);
-                Log::info('SSO SIPERDI: User baru berhasil didaftarkan otomatis', ['sso_id' => $ssoUser['id']]);
+
+                $user->assignRole($roleFromSso);
+
+                Log::info('SSO SIPERDI: User baru didaftarkan', [
+                    'sso_id' => $ssoUser['id'],
+                    'role' => $roleFromSso
+                ]);
             }
 
-            // 3. Auto-login
+            // ========================================================
+            // BERSIHKAN SESI LAMA & LOGIN BARU
+            // ========================================================
+            Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
+
             Auth::login($user, true);
             $request->session()->regenerate();
 
-            // 4. Redirect ke dashboard SIPERDI
+            // Redirect ke dashboard SIPERDI
             return redirect()->intended(route('dashboard'));
 
         } catch (\Exception $e) {

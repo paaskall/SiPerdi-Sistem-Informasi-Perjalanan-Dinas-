@@ -6,12 +6,11 @@
         ['label' => 'Buat Pengajuan',    'route' => 'perjalanan.buat',        'role' => 'pegawai'],
         ['label' => 'Riwayat Saya',      'route' => 'perjalanan.riwayat',     'role' => 'pegawai'],
         ['label' => 'Persetujuan',       'route' => 'perjalanan.persetujuan', 'role' => 'keuangan'],
-        ['label' => 'Reimbursement',     'route' => 'reimbursement.index',    'role' => 'keuangan'], // BARU
-        ['label' => 'SPPD', 'route' => 'perjalanan.pimpinan',    'role' => 'pimpinan'],
-        ['label' => 'Reimburse',     'route' => 'reimbursement.index',    'role' => 'pimpinan'], // BARU
+        ['label' => 'Reimbursement',     'route' => 'reimbursement.index',    'role' => 'keuangan'],
+        ['label' => 'SPPD',              'route' => 'perjalanan.pimpinan',    'role' => 'pimpinan'],
+        ['label' => 'Reimburse',         'route' => 'reimbursement.index',    'role' => 'pimpinan'],
     ];
     
-    // Filter menu berdasarkan role
     $mainLinks = array_values(array_filter($mainLinks, fn ($l) => is_null($l['role']) || $user->hasRole($l['role'])));
 
     $masterLinks = [
@@ -85,26 +84,10 @@
                     <div x-show="o" x-transition.opacity style="display: none"
                          class="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Profil</a>
-                        <form method="POST" action="{{ route('logout') }}" id="logout-form-desktop">
-                            @csrf
-                            <button type="button" 
-                                    @click.prevent="
-                                        Swal.fire({
-                                            title: 'Keluar Aplikasi?',
-                                            text: 'Anda harus login kembali untuk mengakses SIPERDI.',
-                                            icon: 'question',
-                                            showCancelButton: true,
-                                            confirmButtonColor: '#dc2626',
-                                            cancelButtonColor: '#64748b',
-                                            confirmButtonText: 'Ya, Keluar',
-                                            cancelButtonText: 'Batal'
-                                        }).then((result) => {
-                                            if (result.isConfirmed) {
-                                                document.getElementById('logout-form-desktop').submit();
-                                            }
-                                        })
-                                    "
-                                    class="block w-full px-4 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 transition-colors">
+                        
+                        {{-- LOGOUT VIA FORM (TANPA JAVASCRIPT) --}}
+                        <form method="GET" action="http://127.0.0.1:8002/sso-logout">
+                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 transition-colors">
                                 Keluar
                             </button>
                         </form>
@@ -144,7 +127,7 @@
             @endif
         </div>
 
-        <!-- Pengguna -->
+        <!-- Pengguna (mobile) -->
         <div class="border-t border-slate-200 pb-3 pt-4">
             <div class="flex items-center gap-3 px-4">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-900 text-sm font-bold text-white">{{ $initial }}</span>
@@ -156,26 +139,10 @@
 
             <div class="mt-3 space-y-1">
                 <a href="{{ route('profile.edit') }}" class="{{ $mobBase }} {{ request()->routeIs('profile.edit') ? $mobOn : $mobOff }}">Profil</a>
-                <form method="POST" action="{{ route('logout') }}" id="logout-form-mobile">
-                    @csrf
-                    <button type="button" 
-                            @click.prevent="
-                                Swal.fire({
-                                    title: 'Keluar Aplikasi?',
-                                    text: 'Anda harus login kembali untuk mengakses SIPERDI.',
-                                    icon: 'question',
-                                    showCancelButton: true,
-                                    confirmButtonColor: '#dc2626',
-                                    cancelButtonColor: '#64748b',
-                                    confirmButtonText: 'Ya, Keluar',
-                                    cancelButtonText: 'Batal'
-                                }).then((result) => {
-                                    if (result.isConfirmed) {
-                                        document.getElementById('logout-form-mobile').submit();
-                                    }
-                                })
-                            "
-                            class="{{ $mobBase }} {{ $mobOff }} w-full text-left text-red-700">
+                
+                {{-- LOGOUT VIA FORM MOBILE --}}
+                <form method="GET" action="http://127.0.0.1:8002/sso-logout">
+                    <button type="submit" class="{{ $mobBase }} {{ $mobOff }} w-full text-left text-red-700">
                         Keluar
                     </button>
                 </form>
@@ -183,3 +150,25 @@
         </div>
     </div>
 </nav>
+
+@push('scripts')
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+        window.logoutSso = function() {
+            Swal.fire({
+                title: 'Keluar Aplikasi?',
+                text: 'Anda akan keluar dari semua aplikasi (SSO).',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#dc2626',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Keluar',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = 'http://127.0.0.1:8002/sso-logout';
+                }
+            });
+        };
+    </script>
+@endpush
