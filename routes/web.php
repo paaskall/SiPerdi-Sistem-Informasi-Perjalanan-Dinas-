@@ -1,7 +1,7 @@
 <?php
 
 use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\SsoController; // <-- TAMBAHKAN INI
+use App\Http\Controllers\SsoController;
 use Illuminate\Support\Facades\Route;
 use App\Livewire\MasterData\DivisiIndex;
 use App\Livewire\MasterData\GolonganIndex;
@@ -13,13 +13,11 @@ use App\Livewire\Perjalanan\PersetujuanIndex;
 use App\Livewire\Perjalanan\RiwayatIndex;
 use App\Livewire\Perjalanan\PimpinanIndex;
 use App\Http\Controllers\SppdController;
-// TAMBAHKAN INI UNTUK SPRINT 4
 use App\Livewire\Perjalanan\FormReimbursement;
 use App\Livewire\Perjalanan\ReimbursementIndex;
+use App\Http\Controllers\Api\OcrController; // TAMBAHAN UNTUK OCR
 
-// ============================================================
-// SSO CALLBACK (HARUS di paling atas, DI LUAR middleware auth)
-// ============================================================
+// SSO CALLBACK
 Route::get('/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
 
 Route::get('/', function () {
@@ -54,6 +52,9 @@ Route::middleware('auth')->group(function () {
     // Route Reimbursement (Sprint 4)
     Route::get('/perjalanan/reimb/{id}', FormReimbursement::class)->name('perjalanan.reimb');
     Route::get('/reimbursement/list', ReimbursementIndex::class)->name('reimbursement.index');
+
+    // Route API OCR Gemini
+    Route::post('/api/ocr', [OcrController::class, 'scan'])->name('api.ocr');
 });
 
 require __DIR__.'/auth.php';

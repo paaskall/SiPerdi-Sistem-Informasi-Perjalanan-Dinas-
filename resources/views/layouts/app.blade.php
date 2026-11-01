@@ -7,7 +7,6 @@
         <title>{{ config('app.name', 'SIPERDI') }} - Sistem Informasi Perjalanan Dinas</title>
         <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/logo-lanri.png') }}">
 
-
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
@@ -38,8 +37,9 @@
             </main>
         </div>
 
-        <!-- SweetAlert2 -->
+        <!-- Library untuk OCR & Kamera -->
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        <script src="https://unpkg.com/html5-qrcode"></script>
 
         <script>
             document.addEventListener('livewire:init', () => {
@@ -50,12 +50,12 @@
                         title: config.title || '',
                         text: config.text || '',
                         icon: config.icon || 'info',
-                        confirmButtonColor: '#1e3a8a', // Warna blue-900
+                        confirmButtonColor: '#1e3a8a',
                         ...config
                     });
                 });
 
-                // Menangkap konfirmasi (kirim balik ke Livewire)
+                // Menangkap konfirmasi
                 Livewire.on('swal:confirm', (data) => {
                     const config = data[0] || data;
                     Swal.fire({
@@ -69,7 +69,6 @@
                         cancelButtonText: config.cancelButtonText || 'Batal'
                     }).then((result) => {
                         if (result.isConfirmed) {
-                            // Panggil method Livewire (misal: prosesTtd) dengan parameter ID
                             Livewire.dispatch(config.method, config.params);
                         }
                     });
