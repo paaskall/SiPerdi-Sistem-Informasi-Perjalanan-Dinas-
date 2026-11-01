@@ -7,6 +7,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Redirect;
+use Illuminate\Support\Facades\Storage; // Tambahan untuk hapus file lama
 use Illuminate\View\View;
 
 class ProfileController extends Controller
@@ -32,8 +33,14 @@ class ProfileController extends Controller
             $request->user()->email_verified_at = null;
         }
 
-        // LOGIKA UPLOAD TTD
-        if ($request->hasFile('ttd_path')) {
+        // LOGIKA UPLOAD TTD (Hanya untuk pimpinan & jika ada file)
+        if ($request->user()->hasRole('pimpinan') && $request->hasFile('ttd_path')) {
+            
+            // Hapus file TTD lama jika ada
+            if ($request->user()->ttd_path && Storage::disk('public')->exists($request->user()->ttd_path)) {
+                Storage::disk('public')->delete($request->user()->ttd_path);
+            }
+
             $path = $request->file('ttd_path')->store('ttd', 'public');
             $request->user()->ttd_path = $path;
         }

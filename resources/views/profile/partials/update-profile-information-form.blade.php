@@ -45,21 +45,33 @@
             @endif
         </div>
 
-        <!-- Upload TTD Pimpinan -->
-        <div>
-            <label for="ttd_path" class="block text-sm font-semibold text-slate-800">Gambar Tanda Tangan <span class="font-normal text-slate-500">(khusus Pimpinan)</span></label>
+        <!-- ========================================== -->
+        <!-- FORM UPLOAD TTD (HANYA UNTUK ROLE PIMPINAN) -->
+        <!-- ========================================== -->
+        @if (auth()->user()->hasRole('pimpinan'))
+        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
+            <label for="ttd_path" class="block text-sm font-bold text-slate-800">Gambar Tanda Tangan</label>
+            <p class="mt-1 text-xs text-slate-500 mb-4">Unggah gambar tanda tangan Anda (Background transparan disarankan). Tanda tangan ini akan otomatis tercetak pada dokumen SPPD.</p>
 
             @if($user->ttd_path)
-                <div class="mt-2">
-                    <img src="{{ asset('storage/' . $user->ttd_path) }}" alt="Tanda tangan saat ini" class="h-20 rounded-lg border border-slate-200 bg-slate-50 object-contain p-2">
+                <div class="mb-4 flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                    <img src="{{ asset('storage/' . $user->ttd_path) }}" alt="TTD" class="h-20 w-auto object-contain">
+                    <div class="text-sm">
+                        <span class="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                            Tanda tangan tersimpan
+                        </span>
+                    </div>
                 </div>
             @endif
 
             <input type="file" name="ttd_path" id="ttd_path" accept="image/*"
                    class="mt-2 block w-full cursor-pointer rounded-lg border bg-white text-sm text-slate-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-blue-50 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 {{ $errors->has('ttd_path') ? 'border-red-400' : 'border-slate-300' }}">
-            <p class="mt-1.5 text-xs text-slate-500">Format JPG atau PNG. Disarankan memakai latar transparan.</p>
+            <p class="mt-1.5 text-xs text-slate-500">Format JPG atau PNG. Maksimal 2MB.</p>
             <x-input-error class="mt-2" :messages="$errors->get('ttd_path')" />
         </div>
+        @endif
+        <!-- ========================================== -->
 
         <div class="flex flex-wrap items-center gap-4 pt-1">
             <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-900 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 max-sm:w-full">
