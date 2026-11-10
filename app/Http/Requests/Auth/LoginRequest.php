@@ -36,7 +36,19 @@ class LoginRequest extends FormRequest
             [$field => $login, 'password' => $this->input('password')],
             $this->boolean('remember')
         )) {
-            RateLimiter::hit($this->throttleKey());
+            // Tambah hitungan gagal login
+            RateLimiter::hit($this->throttleKey(), 300); // 300 detik (5 menit) block window
+
+            // Catat ke Audit Trail
+            activity()
+                ->causedBy(null)
+                ->withProperties([
+                    'ip' => $this->ip(),
+                    'username_attempted' => $login,
+                    'field' => $field,
+                    'user_agent' => $this->userAgent(),
+                ])
+                ->log('Percobaan login gagal (password salah atau user tidak ada)');
 
             throw ValidationException::withMessages([
                 'email' => trans('auth.failed'),
@@ -53,6 +65,15 @@ class LoginRequest extends FormRequest
         }
 
         event(new Lockout($this));
+
+        // Catat ke Audit Trail
+        activity()
+            ->causedBy(null)
+            ->withProperties([
+                'ip' => $this->ip(),
+                'username_attempted' => $this->input('email'),
+            ])
+            ->log('Percobaan login diblokir (terlalu banyak gagal)');
 
         $seconds = RateLimiter::availableIn($this->throttleKey());
 

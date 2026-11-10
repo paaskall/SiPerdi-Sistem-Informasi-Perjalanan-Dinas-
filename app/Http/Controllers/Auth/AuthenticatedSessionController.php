@@ -9,66 +9,65 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
+use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
-    /**
-     * Display the login view.
-     */
     public function create(): View
     {
         return view('auth.login');
     }
 
-    /**
-     * Handle an incoming authentication request.
-     */
     public function store(LoginRequest $request): RedirectResponse
     {
-        $request->authenticate();
+        try {
+            $request->authenticate();
+        } catch (ValidationException $e) {
+            // Jika error, redirect dengan SweetAlert
+            $errorMessage = $e->validator->errors()->first('email');
+
+            // Cek apakah pesan error adalah pesan rate limiting
+            if (str_contains($errorMessage, 'Too many login attempts') || str_contains($errorMessage, 'minutes')) {
+                return redirect()->back()
+                    ->withInput($request->only('email'))
+                    ->withErrors(['email' => $errorMessage])
+                    ->with('login_error', $errorMessage);
+            }
+
+            return redirect()->back()
+                ->withInput($request->only('email'))
+                ->withErrors(['email' => $errorMessage]);
+        }
 
         $request->session()->regenerate();
 
         return redirect()->intended(route('dashboard', absolute: false));
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
-        // 1. Hapus session lokal Laravel dulu (WAJIB, biar user langsung ke-logout dari SIPERDI)
+        // 1. Hapus session lokal Laravel dulu
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        // 2. Cek apakah server SSO (port 8002) hidup atau nggak
+        // 2. Cek apakah server SSO (port 8002) hidup
         $ssoUrl = 'http://127.0.0.1:8002/sso-logout';
         $ssoAlive = false;
 
         try {
-            // Coba konek ke SSO dengan timeout 2 detik
-            // Pakai HEAD request biar ringan (cuma ngecek koneksi, nggak download halaman)
             $response = Http::timeout(2)->head($ssoUrl);
-            
-            // Kalau dapet response (apapun statusnya, 200/302/404), berarti server hidup
             $ssoAlive = true;
         } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            // Server SSO mati / nggak bisa dihubungi
             $ssoAlive = false;
         } catch (\Exception $e) {
-            // Error lain (misal DNS, timeout, dll)
             $ssoAlive = false;
         }
 
-        // 3. Redirect sesuai kondisi SSO
         if ($ssoAlive) {
-            // SSO hidup → redirect ke SSO logout (logout total)
             return redirect($ssoUrl);
         }
 
-        // SSO mati → redirect ke halaman login SIPERDI
-        // Session lokal udah kehapus di langkah 1, jadi user nggak bisa akses dashboard lagi
         return redirect('/')->with('status', 'Anda telah keluar. Server SSO tidak dapat dihubungi.');
     }
 }
