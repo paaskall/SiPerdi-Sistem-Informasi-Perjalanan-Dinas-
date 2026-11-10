@@ -15,7 +15,9 @@ use App\Livewire\Perjalanan\PimpinanIndex;
 use App\Http\Controllers\SppdController;
 use App\Livewire\Perjalanan\FormReimbursement;
 use App\Livewire\Perjalanan\ReimbursementIndex;
-use App\Http\Controllers\Api\OcrController; // TAMBAHAN UNTUK OCR
+use App\Http\Controllers\Api\OcrController; 
+use App\Livewire\AuditTrailIndex;
+use Spatie\Permission\Middleware\RoleMiddleware; // Tambahkan ini
 
 // SSO CALLBACK
 Route::get('/sso/callback', [SsoController::class, 'callback'])->name('sso.callback');
@@ -28,6 +30,7 @@ Route::get('/dashboard', function () {
     return view('dashboard');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
+// GRUP AUTH UTAMA
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
@@ -49,25 +52,25 @@ Route::middleware('auth')->group(function () {
     Route::get('/perjalanan/pimpinan', PimpinanIndex::class)->name('perjalanan.pimpinan');
     Route::get('/perjalanan/sppd/{id}', [SppdController::class, 'generate'])->name('sppd.pdf');
 
-    // Route Reimbursement (Sprint 4)
+    // Route Reimbursement
     Route::get('/perjalanan/reimb/{id}', FormReimbursement::class)->name('perjalanan.reimb');
     Route::get('/reimbursement/list', ReimbursementIndex::class)->name('reimbursement.index');
 
     // Route API OCR Gemini
     Route::post('/api/ocr', [OcrController::class, 'scan'])->name('api.ocr');
+    
+    // Route Audit Trail (Hanya Pimpinan & Keuangan)
+    Route::get('/audit-trail', AuditTrailIndex::class)
+        ->middleware(RoleMiddleware::class . ':pimpinan|keuangan')
+        ->name('audit.index');
 
     // ==========================================
-    // ROUTE LOGOUT LOKAL (JARING PENGAMAN SSO)
+    // ROUTE LOGOUT LOKAL
     // ==========================================
     Route::post('/logout', function (\Illuminate\Http\Request $request) {
-        // 1. Hapus session lokal Laravel (biar user langsung ke-logout dari aplikasi ini)
         \Illuminate\Support\Facades\Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
-
-        // 2. Redirect ke SSO Logout
-        // Kalau SSO mati, browser bakal error "Unable to connect", 
-        // TAPI session lokal udah aman kehapus. User nggak bisa akses aplikasi lagi.
         return redirect('http://127.0.0.1:8002/sso-logout');
     })->name('logout.local');
 });

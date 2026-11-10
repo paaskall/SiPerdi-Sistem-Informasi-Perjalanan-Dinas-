@@ -7,8 +7,10 @@
         ['label' => 'Riwayat Saya',      'route' => 'perjalanan.riwayat',     'role' => 'pegawai'],
         ['label' => 'Persetujuan',       'route' => 'perjalanan.persetujuan', 'role' => 'keuangan'],
         ['label' => 'Reimbursement',     'route' => 'reimbursement.index',    'role' => 'keuangan'],
+        ['label' => 'Audit Trail',       'route' => 'audit.index',            'role' => 'keuangan'], // TAMBAHKAN INI
         ['label' => 'SPPD',              'route' => 'perjalanan.pimpinan',    'role' => 'pimpinan'],
         ['label' => 'Reimburse',         'route' => 'reimbursement.index',    'role' => 'pimpinan'],
+        ['label' => 'Audit Trail',       'route' => 'audit.index',            'role' => 'pimpinan'], // TAMBAHKAN INI
     ];
     
     $mainLinks = array_values(array_filter($mainLinks, fn ($l) => is_null($l['role']) || $user->hasRole($l['role'])));

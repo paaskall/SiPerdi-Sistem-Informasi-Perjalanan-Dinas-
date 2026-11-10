@@ -21,29 +21,32 @@ class FormReimbursement extends Component
     public $total_realisasi = 0;
 
     public function mount($id)
-    {
-        $perjalanan = PerjalananDinas::with('rincianBiaya')->findOrFail($id);
-        
-        if ($perjalanan->pegawai_id !== auth()->id()) {
-            abort(403, 'Anda tidak berhak mengakses ini.');
-        }
-
-        $this->perjalanan_id = $id;
-
-        if ($perjalanan->rincianBiaya->count() > 0) {
-            foreach ($perjalanan->rincianBiaya as $item) {
-                $this->rincian[] = [
-                    'coa_id' => $item->coa_id,
-                    'keterangan' => $item->keterangan,
-                    'nominal' => $item->nominal,
-                    'file_struk' => null, 
-                    'file_path' => null,
-                ];
-            }
-        } else {
-            $this->tambahBaris();
-        }
+{
+    $perjalanan = PerjalananDinas::with('rincianBiaya')->findOrFail($id);
+    
+    if ($perjalanan->pegawai_id !== auth()->id()) {
+        abort(403, 'Anda tidak berhak mengakses ini.');
     }
+
+    $this->perjalanan_id = $id;
+
+    if ($perjalanan->rincianBiaya->count() > 0) {
+        foreach ($perjalanan->rincianBiaya as $item) {
+            $this->rincian[] = [
+                'coa_id' => $item->coa_id,
+                'keterangan' => $item->keterangan,
+                'nominal' => $item->nominal,
+                'file_struk' => null, 
+                'file_path' => null,
+            ];
+        }
+    } else {
+        $this->tambahBaris();
+    }
+
+    // TAMBAHIN BARIS INI:
+    $this->hitungTotal();
+}
 
     public function updated($property)
     {

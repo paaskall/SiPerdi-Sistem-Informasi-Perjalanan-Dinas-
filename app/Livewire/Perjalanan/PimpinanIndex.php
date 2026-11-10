@@ -34,12 +34,10 @@ class PimpinanIndex extends Component
         ]);
     }
 
-    // 2. Method yang dieksekusi setelah user klik "Ya" di SweetAlert
     public function prosesTtd($id)
     {
         $perjalanan = PerjalananDinas::findOrFail($id);
         
-        // Validasi TTD
         if (!auth()->user()->ttd_path) {
             $this->dispatch('swal', [
                 'title' => 'Gagal!',
@@ -53,10 +51,16 @@ class PimpinanIndex extends Component
             'status' => 'PIMPINAN_SIGNED',
         ]);
 
-        // Notifikasi Sukses
+        // LOG AKTIVITAS KUSTOM
+        activity()
+            ->performedOn($perjalanan)
+            ->causedBy(auth()->user())
+            ->withProperties(['nomor_pengajuan' => $perjalanan->nomor_pengajuan])
+            ->log('Menandatangani SPPD Perjalanan Dinas');
+
         $this->dispatch('swal', [
             'title' => 'Berhasil!',
-            'text' => 'SPPD berhasil ditandatangani. Silakan unduh dokumennya.',
+            'text' => 'SPPD berhasil ditandatangani.',
             'icon' => 'success',
         ]);
     }

@@ -46,13 +46,20 @@ class PersetujuanIndex extends Component
             'catatan_keuangan' => $this->catatan_keuangan,
         ]);
 
+        // Log Manual (tanpa Trait)
+        activity()
+            ->performedOn($perjalanan)
+            ->causedBy(auth()->user())
+            ->withProperties(['nomor_pengajuan' => $perjalanan->nomor_pengajuan])
+            ->log('Menyetujui pengajuan perjalanan dinas');
+
         session()->flash('message', 'Pengajuan berhasil disetujui.');
         $this->closeModal();
     }
 
     public function tolak()
     {
-        $this->validate(['catatan_keuangan' => 'required|string']); // Wajib isi alasan jika tolak
+        $this->validate(['catatan_keuangan' => 'required|string']);
 
         $perjalanan = PerjalananDinas::findOrFail($this->perjalananId);
         $perjalanan->update([
@@ -61,6 +68,13 @@ class PersetujuanIndex extends Component
             'finance_approved_at' => now(),
             'catatan_keuangan' => $this->catatan_keuangan,
         ]);
+
+        // LOG AKTIVITAS KUSTOM
+        activity()
+            ->performedOn($perjalanan)
+            ->causedBy(auth()->user())
+            ->withProperties(['alasan_penolakan' => $this->catatan_keuangan])
+            ->log('Menolak pengajuan perjalanan dinas');
 
         session()->flash('message', 'Pengajuan ditolak.');
         $this->closeModal();
