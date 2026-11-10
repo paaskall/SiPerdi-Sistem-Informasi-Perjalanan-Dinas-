@@ -7,12 +7,14 @@
         <title>{{ config('app.name', 'SIPERDI') }} - Sistem Informasi Perjalanan Dinas</title>
         <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('assets/logo-lanri.png') }}">
 
-        <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
 
-        <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        <!-- Load Vite (CSS aja biar aman) -->
+        @vite(['resources/css/app.css'])
+        
+        <!-- WAJIB: Livewire Styles -->
+        @livewireStyles
 
         <style>
             body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
@@ -22,7 +24,6 @@
         <div class="min-h-screen">
             @include('layouts.navigation')
 
-            <!-- Page Heading -->
             @isset($header)
                 <header class="border-b border-slate-200 bg-white">
                     <div class="mx-auto max-w-7xl px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
@@ -31,19 +32,22 @@
                 </header>
             @endisset
 
-            <!-- Page Content -->
             <main>
                 {{ $slot }}
             </main>
         </div>
 
-        <!-- Library untuk OCR & Kamera -->
+        <!-- Library Tambahan -->
         <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
         <script src="https://unpkg.com/html5-qrcode"></script>
 
+        <!-- WAJIB: LIVE WIRE DARI CDN (Bypass Vite) -->
+        @livewireScripts
+        
+        <!-- Script Custom Lo -->
         <script>
             document.addEventListener('livewire:init', () => {
-                // Menangkap notifikasi biasa
+                // Notifikasi dari Livewire
                 Livewire.on('swal', (data) => {
                     const config = data[0] || data; 
                     Swal.fire({
@@ -55,7 +59,7 @@
                     });
                 });
 
-                // Menangkap konfirmasi
+                // Konfirmasi dari Livewire
                 Livewire.on('swal:confirm', (data) => {
                     const config = data[0] || data;
                     Swal.fire({
@@ -74,6 +78,26 @@
                     });
                 });
             });
+
+            // PENANGKAP FLASH MESSAGE LARAVEL (BIAR SWEETALERT MUNCUL PAS REDIRECT)
+            @if(session('message'))
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Berhasil!',
+                    text: "{{ session('message') }}",
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Gagal!',
+                    text: "{{ session('error') }}",
+                    confirmButtonColor: '#1e3a8a',
+                });
+            @endif
         </script>
     </body>
 </html>

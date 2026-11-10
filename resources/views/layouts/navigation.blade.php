@@ -85,8 +85,9 @@
                          class="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Profil</a>
                         
-                        {{-- LOGOUT VIA FORM (TANPA JAVASCRIPT) --}}
-                        <form method="GET" action="http://127.0.0.1:8002/sso-logout">
+                        {{-- LOGOUT VIA FORM LOKAL (ANTI ERROR SSO MATI) --}}
+                        <form method="POST" action="{{ route('logout') }}">
+                            @csrf
                             <button type="submit" class="block w-full px-4 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 transition-colors">
                                 Keluar
                             </button>
@@ -140,8 +141,9 @@
             <div class="mt-3 space-y-1">
                 <a href="{{ route('profile.edit') }}" class="{{ $mobBase }} {{ request()->routeIs('profile.edit') ? $mobOn : $mobOff }}">Profil</a>
                 
-                {{-- LOGOUT VIA FORM MOBILE --}}
-                <form method="GET" action="http://127.0.0.1:8002/sso-logout">
+                {{-- LOGOUT VIA FORM MOBILE LOKAL --}}
+                <form method="POST" action="{{ route('logout') }}">
+                    @csrf
                     <button type="submit" class="{{ $mobBase }} {{ $mobOff }} w-full text-left text-red-700">
                         Keluar
                     </button>
@@ -166,7 +168,19 @@
                 cancelButtonText: 'Batal'
             }).then((result) => {
                 if (result.isConfirmed) {
-                    window.location.href = 'http://127.0.0.1:8002/sso-logout';
+                    // Bikin form dinamis buat nembak route lokal dulu
+                    let form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = "{{ route('logout') }}";
+                    
+                    let csrf = document.createElement('input');
+                    csrf.type = 'hidden';
+                    csrf.name = '_token';
+                    csrf.value = "{{ csrf_token() }}";
+                    
+                    form.appendChild(csrf);
+                    document.body.appendChild(form);
+                    form.submit();
                 }
             });
         };

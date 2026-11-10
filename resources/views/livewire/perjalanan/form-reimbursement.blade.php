@@ -57,18 +57,31 @@
                                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
                                                 Kamera
                                             </button>
-                                            <button type="button" onclick="scanStruk({{ $index }})" class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700">
-                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-                                                Scan OCR
+                                            
+                                            <button type="button" 
+                                                    wire:click="scanOcr({{ $index }})" 
+                                                    wire:loading.attr="disabled" 
+                                                    wire:target="scanOcr({{ $index }})"
+                                                    class="flex-1 inline-flex items-center justify-center gap-1.5 rounded-md bg-indigo-600 px-3 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-indigo-700 disabled:opacity-50">
+                                                
+                                                <svg wire:loading.remove wire:target="scanOcr({{ $index }})" class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                                
+                                                <svg wire:loading wire:target="scanOcr({{ $index }})" class="animate-spin h-3.5 w-3.5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                                
+                                                <span wire:loading.remove wire:target="scanOcr({{ $index }})">Scan OCR</span>
+                                                <span wire:loading wire:target="scanOcr({{ $index }})">Memindai...</span>
                                             </button>
                                         </div>
                                     </div>
 
                                     <div wire:loading wire:target="rincian.{{ $index }}.file_struk" class="mt-1 text-xs font-medium text-blue-700">Mengunggah...</div>
-                                    @if(isset($item['file_struk']) && is_object($item['file_struk']))
-                                        <p wire:loading.remove wire:target="rincian.{{ $index }}.file_struk" class="mt-1 truncate text-xs font-medium text-emerald-700">&#10003; {{ $item['file_struk']->getClientOriginalName() }}</p>
+                                    
+                                    @if(!empty($item['file_path']))
+                                        <p class="mt-1 truncate text-xs font-medium text-emerald-700">&#10003; Struk ter-upload</p>
                                     @endif
+
                                     <x-input-error :messages="$errors->get('rincian.'.$index.'.file_struk')" class="mt-1" />
+                                    <x-input-error :messages="$errors->get('rincian.'.$index.'.file_path')" class="mt-1" />
                                 </div>
                             </div>
                         @endforeach
@@ -86,8 +99,9 @@
                         <div class="text-xs font-semibold text-slate-500">Total Realisasi</div>
                         <div class="mt-0.5 text-2xl font-extrabold tracking-tight text-slate-900">Rp {{ number_format($total_realisasi, 0, ',', '.') }}</div>
                     </div>
-                    <button type="submit" wire:loading.attr="disabled" wire:target="simpan"
-                            class="inline-flex items-center justify-center rounded-lg bg-blue-900 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2">
+                    
+                    <!-- TOMBOL SIMPLE BIAR NGGAK BENTROK -->
+                    <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-900 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2">
                         Kirim Laporan Reimbursement
                     </button>
                 </div>
@@ -109,7 +123,7 @@
         </div>
     </div>
 
-    <!-- SCRIPT OCR & KAMERA -->
+    <!-- SCRIPT KAMERA -->
     <script>
         let html5QrCode;
         let currentIndex = null;
@@ -124,8 +138,8 @@
                 await html5QrCode.start(
                     { facingMode: "environment" },
                     { fps: 10, qrbox: { width: 300, height: 400 } },
-                    () => {}, // callback sukses (abaikan)
-                    () => {}  // callback error (abaikan)
+                    () => {}, 
+                    () => {}  
                 );
             } catch (err) {
                 alert("Tidak dapat mengakses kamera: " + err);
@@ -151,79 +165,16 @@
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
             
-            const base64Image = canvas.toDataURL('image/jpeg', 0.8);
-            closeCamera();
-            processImageWithGemini(base64Image, currentIndex);
-        }
-
-        async function scanStruk(index) {
-            const inputFile = document.querySelector(`input[wire\\:model="rincian.${index}.file_struk"]`);
-            
-            if (!inputFile || !inputFile.files || inputFile.files.length === 0) {
-                alert('Pilih gambar struk terlebih dahulu, atau gunakan tombol Kamera!');
-                return;
-            }
-
-            const file = inputFile.files[0];
-            const reader = new FileReader();
-            
-            reader.onload = async (e) => {
-                processImageWithGemini(e.target.result, index);
-            };
-            reader.readAsDataURL(file);
-        }
-
-        async function processImageWithGemini(base64Image, index) {
-            Swal.fire({
-                title: 'Memindai Struk...',
-                text: 'Gemini AI sedang membaca nominal struk Anda.',
-                allowOutsideClick: false,
-                didOpen: () => { Swal.showLoading(); }
-            });
-
-            try {
-                const response = await fetch("{{ route('api.ocr') }}", {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                    },
-                    body: JSON.stringify({ image: base64Image })
-                });
-
-                const result = await response.json();
-                Swal.close();
-
-                if (result.success && result.data && result.data.total > 0) {
-                    const nominalInput = document.querySelector(`input[wire\\:model\\.live="rincian.${index}.nominal"]`);
-                    if (nominalInput) {
-                        nominalInput.value = result.data.total;
-                        nominalInput.dispatchEvent(new Event('input', { bubbles: true }));
-                    }
-
-                    Swal.fire({
-                        icon: 'success',
-                        title: 'Berhasil!',
-                        text: `Total terdeteksi: Rp ${result.data.total.toLocaleString('id-ID')}`,
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
-                } else {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Gagal Membaca',
-                        text: 'Tidak dapat mendeteksi nominal pada struk. Silakan input manual.'
-                    });
-                }
-            } catch (error) {
-                Swal.close();
-                console.error(error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: 'Terjadi kesalahan sistem saat memindai struk.'
-                });
-            }
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], "camera_capture.jpg", { type: "image/jpeg" });
+                const dataTransfer = new DataTransfer();
+                dataTransfer.items.add(file);
+                
+                const inputFile = document.querySelector(`input[wire\\:model="rincian.${currentIndex}.file_struk"]`);
+                inputFile.files = dataTransfer.files;
+                inputFile.dispatchEvent(new Event('change', { bubbles: true }));
+                closeCamera();
+            }, 'image/jpeg', 0.8);
         }
     </script>
 </div>
