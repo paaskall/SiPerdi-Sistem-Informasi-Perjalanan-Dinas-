@@ -2,15 +2,15 @@
     $user = Auth::user();
 
     $mainLinks = [
-        ['label' => 'Dashboard',         'route' => 'dashboard',              'role' => null],
-        ['label' => 'Buat Pengajuan',    'route' => 'perjalanan.buat',        'role' => 'pegawai'],
-        ['label' => 'Riwayat Saya',      'route' => 'perjalanan.riwayat',     'role' => 'pegawai'],
-        ['label' => 'Persetujuan',       'route' => 'perjalanan.persetujuan', 'role' => 'keuangan'],
-        ['label' => 'Reimbursement',     'route' => 'reimbursement.index',    'role' => 'keuangan'],
-        ['label' => 'Audit Trail',       'route' => 'audit.index',            'role' => 'keuangan'], // TAMBAHKAN INI
-        ['label' => 'SPPD',              'route' => 'perjalanan.pimpinan',    'role' => 'pimpinan'],
-        ['label' => 'Reimburse',         'route' => 'reimbursement.index',    'role' => 'pimpinan'],
-        ['label' => 'Audit Trail',       'route' => 'audit.index',            'role' => 'pimpinan'], // TAMBAHKAN INI
+        ['label' => 'Dashboard',          'route' => 'dashboard',                        'role' => null],
+        ['label' => 'Buat UMK',           'route' => 'perjalanan.buat',                  'role' => 'pegawai'],
+        ['label' => 'Riwayat UMK',        'route' => 'perjalanan.riwayat',               'role' => 'pegawai'],
+        ['label' => 'Laporan',       'route' => 'laporan.riwayat',                  'role' => 'pegawai'],
+        ['label' => 'Verifikasi UMK',     'route' => 'perjalanan.verifikasi-umk',        'role' => 'keuangan'],
+        ['label' => 'Verifikasi Laporan', 'route' => 'perjalanan.verifikasi-laporan',    'role' => 'keuangan'],
+        ['label' => 'Audit Trail',        'route' => 'audit.index',                      'role' => 'keuangan'],
+        ['label' => 'Audit Trail',        'route' => 'audit.index',                      'role' => 'pimpinan'],
+        ['label' => 'Manajemen User',     'route' => 'master.users',                     'role' => 'super-admin'],
     ];
     
     $mainLinks = array_values(array_filter($mainLinks, fn ($l) => is_null($l['role']) || $user->hasRole($l['role'])));
@@ -18,6 +18,7 @@
     $masterLinks = [
         ['label' => 'Divisi',   'route' => 'master.divisi'],
         ['label' => 'Golongan', 'route' => 'master.golongan'],
+        ['label' => 'Pangkat',  'route' => 'master.pangkat'],
         ['label' => 'COA',      'route' => 'master.coa'],
         ['label' => 'Kota',     'route' => 'master.kota'],
         ['label' => 'Tarif',    'route' => 'master.tarif'],
@@ -47,7 +48,7 @@
                 </a>
 
                 <!-- Tautan (desktop) -->
-                <div class="hidden gap-7 lg:ml-10 lg:flex">
+                <div class="hidden gap-6 lg:ml-10 lg:flex">
                     @foreach ($mainLinks as $l)
                         @php $on = request()->routeIs($l['route']); @endphp
                         <a href="{{ route($l['route']) }}" @if($on) aria-current="page" @endif
@@ -86,14 +87,12 @@
                     <div x-show="o" x-transition.opacity style="display: none"
                          class="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Profil</a>
-                        
-                        {{-- LOGOUT VIA FORM LOKAL (ANTI ERROR SSO MATI) --}}
-                        <form method="POST" action="{{ route('logout') }}">
-                            @csrf
-                            <button type="submit" class="block w-full px-4 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 transition-colors">
-                                Keluar
-                            </button>
-                        </form>
+
+                        {{-- ✅ Tombol logout: type="button" + onclick confirmLogout --}}
+                        <button type="button" onclick="confirmLogout(event)"
+                                class="block w-full px-4 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 transition-colors">
+                            Keluar
+                        </button>
                     </div>
                 </div>
             </div>
@@ -130,7 +129,6 @@
             @endif
         </div>
 
-        <!-- Pengguna (mobile) -->
         <div class="border-t border-slate-200 pb-3 pt-4">
             <div class="flex items-center gap-3 px-4">
                 <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-blue-900 text-sm font-bold text-white">{{ $initial }}</span>
@@ -142,49 +140,60 @@
 
             <div class="mt-3 space-y-1">
                 <a href="{{ route('profile.edit') }}" class="{{ $mobBase }} {{ request()->routeIs('profile.edit') ? $mobOn : $mobOff }}">Profil</a>
-                
-                {{-- LOGOUT VIA FORM MOBILE LOKAL --}}
-                <form method="POST" action="{{ route('logout') }}">
-                    @csrf
-                    <button type="submit" class="{{ $mobBase }} {{ $mobOff }} w-full text-left text-red-700">
-                        Keluar
-                    </button>
-                </form>
+
+                {{-- ✅ Tombol logout mobile: type="button" + onclick confirmLogout --}}
+                <button type="button" onclick="confirmLogout(event)"
+                        class="{{ $mobBase }} {{ $mobOff }} w-full text-left text-red-700">
+                    Keluar
+                </button>
             </div>
         </div>
     </div>
 </nav>
 
-@push('scripts')
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <script>
-        window.logoutSso = function() {
+{{-- Form logout tersembunyi: satu-satunya yang submit ke /logout --}}
+<form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">
+    @csrf
+</form>
+
+{{-- SweetAlert: konfirmasi logout --}}
+<script>
+window.confirmLogout = function (event) {
+    if (event) event.preventDefault();
+
+    // Fallback kalau SweetAlert belum ke-load
+    if (typeof Swal === 'undefined') {
+        if (confirm('Yakin ingin logout?')) {
+            document.getElementById('logout-form').submit();
+        }
+        return;
+    }
+
+    Swal.fire({
+        title: 'Keluar Aplikasi?',
+        text: 'Anda akan keluar dari sistem. Yakin ingin melanjutkan?',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#dc2626',
+        cancelButtonColor: '#64748b',
+        confirmButtonText: 'Ya, Keluar',
+        cancelButtonText: 'Batal',
+        reverseButtons: true,
+        customClass: { popup: 'font-sans rounded-2xl' }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Loading spinner sebentar
             Swal.fire({
-                title: 'Keluar Aplikasi?',
-                text: 'Anda akan keluar dari semua aplikasi (SSO).',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Ya, Keluar',
-                cancelButtonText: 'Batal'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Bikin form dinamis buat nembak route lokal dulu
-                    let form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = "{{ route('logout') }}";
-                    
-                    let csrf = document.createElement('input');
-                    csrf.type = 'hidden';
-                    csrf.name = '_token';
-                    csrf.value = "{{ csrf_token() }}";
-                    
-                    form.appendChild(csrf);
-                    document.body.appendChild(form);
-                    form.submit();
-                }
+                title: 'Sedang logout...',
+                text: 'Mohon tunggu sebentar.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
             });
-        };
-    </script>
-@endpush
+
+            document.getElementById('logout-form').submit();
+        }
+    });
+};
+</script>

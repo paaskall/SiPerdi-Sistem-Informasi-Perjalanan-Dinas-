@@ -2,124 +2,322 @@
     @php
         $inp = fn ($field) => 'block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 '
             . ($errors->has($field) ? 'border-red-400' : 'border-slate-300');
+        $user = auth()->user();
     @endphp
 
-    <div class="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-        <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
 
-            <!-- Header -->
-            <div class="flex items-center gap-4 border-b border-slate-200 bg-slate-50 p-4 sm:p-6">
-                <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 text-white shadow-lg shadow-blue-900/20"><svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>
+        <!-- HEADER -->
+        <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex items-center gap-4">
+                <div class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-blue-900 to-blue-700 text-white shadow-lg shadow-blue-900/20">
+                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M12 5v14M5 12h14"/>
+                    </svg>
+                </div>
                 <div>
-                    <h2 class="text-xl font-extrabold tracking-tight text-slate-900">Formulir Pengajuan Perjalanan Dinas</h2>
-                    <p class="mt-0.5 text-sm text-slate-500">Isi tujuan, jadwal, dan estimasi biaya perjalanan.</p>
+                    <h2 class="text-xl font-extrabold tracking-tight text-slate-900">Form UMK Baru</h2>
+                    <p class="mt-0.5 text-sm text-slate-500">Isi data perjalanan dinas Anda untuk pengajuan Uang Muka Kerja.</p>
                 </div>
             </div>
+        </div>
 
-            <form wire:submit="simpan">
-                <!-- Informasi perjalanan -->
-                <div class="p-4 sm:p-6">
-                    <h3 class="flex items-center gap-2.5 text-sm font-bold text-slate-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-900 text-xs font-bold text-white">1</span>Informasi Perjalanan</h3>
+        <!-- CARD FORM -->
+        <div class="mx-auto max-w-4xl">
+            <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-                    <div class="mt-4 grid grid-cols-1 gap-5 md:grid-cols-2">
-                        <!-- Kota Tujuan -->
-                        <div>
-                            <label for="kota_tujuan_id" class="block text-sm font-semibold text-slate-800">Kota Tujuan</label>
-                            <select wire:model="kota_tujuan_id" id="kota_tujuan_id" class="mt-1.5 {{ $inp('kota_tujuan_id') }}">
-                                <option value="">-- Pilih Kota --</option>
-                                @foreach($kotas as $k)
-                                    <option value="{{ $k->id }}">{{ $k->nama }}</option>
-                                @endforeach
-                            </select>
-                            <x-input-error :messages="$errors->get('kota_tujuan_id')" class="mt-2" />
-                        </div>
-
-                        <!-- Maksud Perjalanan -->
-                        <div>
-                            <label for="maksud_perjalanan" class="block text-sm font-semibold text-slate-800">Maksud / Tujuan Perjalanan</label>
-                            <input wire:model="maksud_perjalanan" id="maksud_perjalanan" type="text" placeholder="Contoh: Rapat Koordinasi" class="mt-1.5 {{ $inp('maksud_perjalanan') }}">
-                            <x-input-error :messages="$errors->get('maksud_perjalanan')" class="mt-2" />
-                        </div>
-
-                        <!-- Tanggal Berangkat -->
-                        <div>
-                            <label for="tanggal_berangkat" class="block text-sm font-semibold text-slate-800">Tanggal Berangkat</label>
-                            <input wire:model.live="tanggal_berangkat" id="tanggal_berangkat" type="date" class="mt-1.5 {{ $inp('tanggal_berangkat') }}">
-                            <x-input-error :messages="$errors->get('tanggal_berangkat')" class="mt-2" />
-                        </div>
-
-                        <!-- Tanggal Pulang -->
-                        <div>
-                            <label for="tanggal_pulang" class="block text-sm font-semibold text-slate-800">Tanggal Pulang</label>
-                            <input wire:model.live="tanggal_pulang" id="tanggal_pulang" type="date" class="mt-1.5 {{ $inp('tanggal_pulang') }}">
-                            <x-input-error :messages="$errors->get('tanggal_pulang')" class="mt-2" />
-                        </div>
-                    </div>
-
-                    <div class="mt-5 flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-sm">
-                        <span class="text-slate-600">Total hari</span>
-                        <strong class="text-slate-900">{{ $jumlah_hari }} Hari</strong>
+                <!-- DATA DIRI -->
+                <div class="border-b border-slate-100 bg-blue-50/50 p-4 sm:p-6">
+                    <h3 class="flex items-center gap-2.5 text-sm font-bold text-blue-900 mb-4">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+                        Data Pemohon (Otomatis)
+                    </h3>
+                    <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
+                        <div><span class="text-slate-500">Nama Lengkap</span><p class="font-semibold text-slate-900">{{ $user->name }}</p></div>
+                        <div><span class="text-slate-500">NIP</span><p class="font-semibold text-slate-900">{{ $user->nip ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Jabatan</span><p class="font-semibold text-slate-900">{{ $user->jabatan->nama ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Divisi</span><p class="font-semibold text-slate-900">{{ $user->divisi->nama ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Golongan</span><p class="font-semibold text-slate-900">{{ $user->golongan->nama ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Pangkat</span><p class="font-semibold text-slate-900">{{ $user->pangkat->nama ?? '-' }} {{ $user->pangkat ? '(' . $user->pangkat->golongan_ruang . ')' : '' }}</p></div>
                     </div>
                 </div>
 
-                <!-- Rincian biaya -->
-                <div class="border-t border-slate-200 p-4 sm:p-6">
-                    <h3 class="flex items-center gap-2.5 text-sm font-bold text-slate-900"><span class="flex h-6 w-6 items-center justify-center rounded-full bg-blue-900 text-xs font-bold text-white">2</span>Rincian Estimasi Biaya</h3>
+                <form wire:submit="simpan">
+                    <fieldset @disabled(!$profilLengkap) class="m-0 min-w-0 border-0 p-0 {{ !$profilLengkap ? 'opacity-60' : '' }}">
 
-                    <div class="mt-4 space-y-4 md:space-y-3">
-                        @foreach($rincian as $index => $item)
-                            <div wire:key="rincian-{{ $index }}" class="grid grid-cols-1 gap-4 rounded-xl border border-slate-200 p-4 md:grid-cols-12 md:items-end md:rounded-none md:border-0 md:p-0">
-                                <div class="md:col-span-4">
-                                    <label for="rincian-coa-{{ $index }}" class="block text-sm font-semibold text-slate-800 {{ $index > 0 ? 'md:sr-only' : '' }}">Kategori Biaya</label>
-                                    <select wire:model="rincian.{{ $index }}.coa_id" id="rincian-coa-{{ $index }}" class="mt-1.5 {{ $index > 0 ? 'md:mt-0' : '' }} {{ $inp('rincian.'.$index.'.coa_id') }}">
-                                        <option value="">-- Pilih Akun --</option>
-                                        @foreach($coas as $c)
-                                            <option value="{{ $c->id }}">{{ $c->kode }} - {{ $c->nama }}</option>
-                                        @endforeach
-                                    </select>
-                                    <x-input-error :messages="$errors->get('rincian.'.$index.'.coa_id')" class="mt-1" />
+                        <!-- INFORMASI PERJALANAN -->
+                        <div class="p-4 sm:p-6">
+                            <h3 class="flex items-center gap-2.5 text-sm font-bold text-slate-900 mb-4">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+                                Informasi Perjalanan
+                            </h3>
+
+                            <!-- Baris 1: No Pembukuan, Akun, No SPD (READONLY) -->
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">No. Pembukuan</label>
+                                    {{-- PERBAIKAN: cursor-not-allowed, bg-slate-100, text-slate-500 --}}
+                                    <input wire:model="no_pembukuan" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
                                 </div>
-
-                                <div class="md:col-span-4">
-                                    <label for="rincian-ket-{{ $index }}" class="block text-sm font-semibold text-slate-800 {{ $index > 0 ? 'md:sr-only' : '' }}">Keterangan</label>
-                                    <input wire:model="rincian.{{ $index }}.keterangan" id="rincian-ket-{{ $index }}" type="text" placeholder="Misal: Tiket Pesawat" class="mt-1.5 {{ $index > 0 ? 'md:mt-0' : '' }} {{ $inp('rincian.'.$index.'.keterangan') }}">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Akun</label>
+                                    <input wire:model="akun" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
                                 </div>
-
-                                <div class="md:col-span-3">
-                                    <label for="rincian-nom-{{ $index }}" class="block text-sm font-semibold text-slate-800 {{ $index > 0 ? 'md:sr-only' : '' }}">Nominal (Rp)</label>
-                                    <input wire:model.live="rincian.{{ $index }}.nominal" id="rincian-nom-{{ $index }}" type="number" min="0" placeholder="0" class="mt-1.5 {{ $index > 0 ? 'md:mt-0' : '' }} {{ $inp('rincian.'.$index.'.nominal') }}">
-                                    <x-input-error :messages="$errors->get('rincian.'.$index.'.nominal')" class="mt-1" />
-                                </div>
-
-                                <div class="md:col-span-1 md:flex md:justify-end">
-                                    <button type="button" wire:click="hapusBaris({{ $index }})" title="Hapus baris"
-                                            class="inline-flex items-center justify-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 transition-colors hover:bg-red-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-600 focus-visible:ring-offset-2 max-md:w-full md:border-0 md:px-2.5">
-                                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
-                                        <span class="md:sr-only">Hapus baris</span>
-                                    </button>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Kode SPD</label>
+                                    <input wire:model="no_spd" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
                                 </div>
                             </div>
-                        @endforeach
-                    </div>
 
-                    <button type="button" wire:click="tambahBaris" class="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-900 hover:text-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 max-sm:w-full max-sm:justify-center">
-                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
-                        Tambah Baris Biaya
-                    </button>
-                </div>
+                            <!-- Baris 2: Tempat Berangkat, Provinsi, Kota, Maksud -->
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-4 mb-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Tempat Berangkat</label>
+                                    <input wire:model="tempat_berangkat" type="text" class="{{ $inp('tempat_berangkat') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('tempat_berangkat')" class="mt-2" />
+                                </div>
+                                
+                                {{-- DROPDOWN PROVINSI --}}
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Provinsi Tujuan</label>
+                                    <select wire:model.live="provinsi" class="{{ $inp('provinsi') }} mt-1.5">
+                                        <option value="">-- Pilih Provinsi --</option>
+                                        @foreach($provinsis as $prov)
+                                            <option value="{{ $prov }}">{{ $prov }}</option>
+                                        @endforeach
+                                    </select>
+                                    <x-input-error :messages="$errors->get('provinsi')" class="mt-2" />
+                                </div>
 
-                <!-- Total & kirim -->
-                <div class="flex flex-col gap-4 border-t border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
-                    <div>
-                        <div class="text-xs font-semibold text-slate-500">Total Estimasi</div>
-                        <div class="mt-0.5 text-2xl font-extrabold tracking-tight text-slate-900">Rp {{ number_format($total_estimasi, 0, ',', '.') }}</div>
+                                {{-- DROPDOWN KOTA (Tergantung Provinsi) --}}
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Kota / Kabupaten</label>
+                                    <select wire:model="kota_tujuan_id" class="{{ $inp('kota_tujuan_id') }} mt-1.5" @if(!$provinsi) disabled @endif>
+                                        <option value="">-- Pilih Kota --</option>
+                                        @foreach($kotas as $k)
+                                            <option value="{{ $k->id }}">{{ $k->nama }}</option>
+                                        @endforeach
+                                    </select>
+                                    <x-input-error :messages="$errors->get('kota_tujuan_id')" class="mt-2" />
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Maksud Perjalanan</label>
+                                    <input wire:model="maksud_perjalanan" type="text" placeholder="Contoh: Rapat" class="{{ $inp('maksud_perjalanan') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('maksud_perjalanan')" class="mt-2" />
+                                </div>
+                            </div>
+
+                            <!-- Baris 3: Alat Angkutan, Tingkat Biaya, Lama Perjalanan -->
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Alat Angkutan</label>
+                                    <select wire:model="alat_angkutan" class="{{ $inp('alat_angkutan') }} mt-1.5">
+                                        <option value="Pesawat">Pesawat</option>
+                                        <option value="Kereta">Kereta</option>
+                                        <option value="Bus">Bus</option>
+                                        <option value="Mobil">Mobil</option>
+                                    </select>
+                                    <x-input-error :messages="$errors->get('alat_angkutan')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Tingkat Biaya</label>
+                                    <select wire:model="tingkat_biaya" class="{{ $inp('tingkat_biaya') }} mt-1.5">
+                                        <option value="A">A</option>
+                                        <option value="B">B</option>
+                                        <option value="C">C</option>
+                                        <option value="D">D</option>
+                                    </select>
+                                    <x-input-error :messages="$errors->get('tingkat_biaya')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Lama Perjalanan</label>
+                                    <div class="mt-1.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm">
+                                        <strong class="text-blue-900">{{ $jumlah_hari }} Hari</strong>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Baris 4: Tanggal -->
+                            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Tanggal Berangkat</label>
+                                    <input wire:model.live="tanggal_berangkat" type="date" class="{{ $inp('tanggal_berangkat') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('tanggal_berangkat')" class="mt-2" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-slate-800">Tanggal Pulang</label>
+                                    <input wire:model.live="tanggal_pulang" type="date" class="{{ $inp('tanggal_pulang') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('tanggal_pulang')" class="mt-2" />
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- RINCIAN BIAYA -->
+                        <div class="border-t border-slate-200 p-4 sm:p-6">
+                            <h3 class="flex items-center gap-2.5 text-sm font-bold text-slate-900 mb-4">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                Rincian Estimasi Biaya
+                            </h3>
+
+                            @if($jumlah_hari > 0)
+                                <div class="mb-3 flex items-center gap-2 rounded-lg border border-blue-200 bg-blue-50 px-3 py-2 text-xs text-blue-800">
+                                    <svg class="h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                    <span><strong>Lama perjalanan: {{ $jumlah_hari }} hari.</strong> Memilih kategori penginapan atau uang harian akan otomatis mengisi Qty & Satuan.</span>
+                                </div>
+                            @endif
+
+                            <div class="space-y-4">
+                                @foreach($rincian as $index => $item)
+                                    @php
+                                        $selectedCoa = collect($coas)->firstWhere('id', $item['coa_id']);
+                                        $namaCoa = $selectedCoa ? strtolower($selectedCoa->nama) : '';
+                                        
+                                        $isPenginapan = $selectedCoa && (str_contains($namaCoa, 'penginapan') || str_contains($namaCoa, 'hotel') || str_contains($namaCoa, 'akomodasi'));
+                                        $isUangHarian = $selectedCoa && (str_contains($namaCoa, 'uang harian') || str_contains($namaCoa, 'uang saku') || str_contains($namaCoa, 'harian'));
+
+                                        $borderColor = 'border-slate-200 bg-slate-50/50';
+                                        if ($isPenginapan) $borderColor = 'border-blue-300 bg-blue-50/40';
+                                        if ($isUangHarian) $borderColor = 'border-amber-300 bg-amber-50/40';
+                                    @endphp
+                                    
+                                    <div wire:key="rincian-{{ $index }}" class="relative w-full rounded-xl border {{ $borderColor }} p-4 pr-12 mt-2">
+                                        
+                                        {{-- Tombol Hapus X di Pojok Kanan Atas --}}
+                                        <button type="button" wire:click="hapusBaris({{ $index }})" 
+                                                style="position: absolute; top: 12px; right: 12px; z-index: 50;"
+                                                class="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-slate-400 shadow-sm transition-colors hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/50"
+                                                title="Hapus baris ini">
+                                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                                            </svg>
+                                        </button>
+
+                                        @if($isPenginapan)
+                                            <div class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-blue-800">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                                                Baris penginapan — Qty otomatis disesuaikan
+                                            </div>
+                                        @elseif($isUangHarian)
+                                            <div class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-800">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                                                Uang harian — Qty otomatis disesuaikan
+                                            </div>
+                                        @endif
+
+                                        <div class="grid grid-cols-12 gap-3 items-start">
+                                            
+                                            <div class="col-span-12 md:col-span-3 mt-8">
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Kategori</label>
+                                                <select wire:model.live="rincian.{{ $index }}.coa_id" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300">
+                                                    <option value="">-- Pilih --</option>
+                                                    @foreach($coas as $c)
+                                                        <option value="{{ $c->id }}">{{ $c->nama }}</option>
+                                                    @endforeach
+                                                </select>
+                                            </div>
+
+                                            <div class="col-span-12 md:col-span-3 mt-8">
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Keterangan</label>
+                                                <input wire:model="rincian.{{ $index }}.keterangan" type="text" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300" placeholder="Misal: Hotel">
+                                            </div>
+
+                                            <div class="col-span-3 md:col-span-1 mt-8">
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Qty</label>
+                                                <input wire:model.live="rincian.{{ $index }}.qty" type="number" min="1" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300 {{ $isPenginapan ? 'bg-blue-50 font-semibold' : ($isUangHarian ? 'bg-amber-50 font-semibold' : '') }}">
+                                            </div>
+
+                                            <div class="col-span-3 md:col-span-1 mt-8">
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Satuan</label>
+                                                <input wire:model="rincian.{{ $index }}.satuan" type="text" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300 {{ $isPenginapan ? 'bg-blue-50' : ($isUangHarian ? 'bg-amber-50' : '') }}">
+                                            </div>
+
+                                            <div class="col-span-6 md:col-span-2 mt-8">
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Harga Satuan</label>
+                                                <input wire:model.live="rincian.{{ $index }}.harga_satuan" type="number" min="0" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300">
+                                            </div>
+
+                                            <div class="col-span-6 md:col-span-2 mt-8">
+                                                <label class="block text-xs font-semibold text-slate-700 mb-1.5">Jumlah</label>
+                                                <div class="rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm font-semibold text-slate-900">
+                                                    {{ number_format($item['nominal'] ?? 0, 0, ',', '.') }}
+                                                </div>
+                                            </div>
+
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+
+                            <button type="button" wire:click="tambahBaris" class="mt-4 inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition-colors hover:border-blue-900 hover:text-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 max-sm:w-full max-sm:justify-center">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 5v14M5 12h14"/></svg>
+                                Tambah Baris Biaya
+                            </button>
+                        </div>
+                    </fieldset>
+
+                    <!-- TOTAL & KIRIM -->
+                    <div class="flex flex-col gap-4 border-t border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+                        <div>
+                            <div class="text-xs font-semibold text-slate-500">Total Estimasi</div>
+                            <div class="mt-0.5 text-2xl font-extrabold tracking-tight text-slate-900">Rp {{ number_format($total_estimasi, 0, ',', '.') }}</div>
+                        </div>
+
+                        <div class="flex flex-col gap-3 sm:items-end">
+                            @unless($profilLengkap)
+                                <div role="alert" class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 sm:max-w-xs">
+                                    <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
+                                    <span><strong class="font-semibold">Data belum lengkap.</strong> Lengkapi profil Anda terlebih dahulu.</span>
+                                </div>
+                            @endunless
+
+                            <x-input-error :messages="$errors->get('profil')" />
+
+                            <button type="submit" wire:loading.attr="disabled" wire:target="simpan" @disabled(!$profilLengkap) class="inline-flex items-center justify-center rounded-lg bg-blue-900 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 disabled:cursor-not-allowed disabled:opacity-60">
+                                Simpan &amp; Lanjut Cetak UMK
+                            </button>
+                        </div>
                     </div>
-                    <button type="submit" wire:loading.attr="disabled" wire:target="simpan"
-                            class="inline-flex items-center justify-center rounded-lg bg-blue-900 px-7 py-3 text-sm font-semibold text-white transition-colors hover:bg-blue-800 disabled:opacity-60 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2">
-                        Kirim Pengajuan
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
+
+    <!-- SCRIPT SWEETALERT PROFIL LENGKAP -->
+    @if(!$profilLengkap)
+    <div style="display: none;">
+        <script>
+            (function () {
+                const missingFields = @json($missing);
+                const profileUrl = @json(route('profile.edit'));
+
+                function showProfileAlert() {
+                    if (window.__profileAlertShown) return;
+                    window.__profileAlertShown = true;
+
+                    const items = missingFields.map(f => `<li class="flex items-center gap-2"><span class="h-1.5 w-1.5 rounded-full bg-amber-500"></span>${f}</li>`).join('');
+
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Profil Belum Lengkap',
+                        html: `<div class="text-left"><p class="text-sm text-slate-600 mb-3">Lengkapi data berikut:</p><ul class="text-sm text-slate-800 space-y-1.5 pl-1">${items}</ul></div>`,
+                        showCancelButton: true,
+                        confirmButtonText: 'Lengkapi Profil',
+                        cancelButtonText: 'Tutup',
+                        confirmButtonColor: '#1e3a8a',
+                        cancelButtonColor: '#64748b',
+                        allowOutsideClick: false
+                    }).then((result) => {
+                        window.__profileAlertShown = false;
+                        if (result.isConfirmed) window.location.href = profileUrl;
+                    });
+                }
+
+                if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', showProfileAlert, { once: true });
+                else showProfileAlert();
+            })();
+        </script>
+    </div>
+    @endif
+
 </div>

@@ -9,44 +9,41 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Http;
 use Illuminate\View\View;
-use Illuminate\Validation\ValidationException;
 
 class AuthenticatedSessionController extends Controller
 {
+    /**
+     * Display the login view.
+     */
     public function create(): View
     {
         return view('auth.login');
     }
 
+    /**
+     * Handle an incoming authentication request.
+     *
+     * ValidationException dari LoginRequest akan otomatis ditangkap Laravel
+     * dan di-redirect back dengan $errors->has('email') = true.
+     */
     public function store(LoginRequest $request): RedirectResponse
     {
-        try {
-            $request->authenticate();
-        } catch (ValidationException $e) {
-            // Jika error, redirect dengan SweetAlert
-            $errorMessage = $e->validator->errors()->first('email');
-
-            // Cek apakah pesan error adalah pesan rate limiting
-            if (str_contains($errorMessage, 'Too many login attempts') || str_contains($errorMessage, 'minutes')) {
-                return redirect()->back()
-                    ->withInput($request->only('email'))
-                    ->withErrors(['email' => $errorMessage])
-                    ->with('login_error', $errorMessage);
-            }
-
-            return redirect()->back()
-                ->withInput($request->only('email'))
-                ->withErrors(['email' => $errorMessage]);
-        }
+        $request->authenticate();
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route('dashboard', absolute: false));
+        // ✅ Tambah flash message untuk SweetAlert "Selamat datang"
+        return redirect()
+            ->intended(route('dashboard', absolute: false))
+            ->with('message', 'Selamat datang, ' . Auth::user()->name . '!');
     }
 
+    /**
+     * Destroy an authenticated session.
+     */
     public function destroy(Request $request): RedirectResponse
     {
-        // 1. Hapus session lokal Laravel dulu
+        // 1. Logout lokal Laravel dulu
         Auth::guard('web')->logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();
@@ -56,18 +53,20 @@ class AuthenticatedSessionController extends Controller
         $ssoAlive = false;
 
         try {
-            $response = Http::timeout(2)->head($ssoUrl);
+            Http::timeout(2)->head($ssoUrl);
             $ssoAlive = true;
-        } catch (\Illuminate\Http\Client\ConnectionException $e) {
-            $ssoAlive = false;
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
             $ssoAlive = false;
         }
 
+        // 3. Kalau SSO hidup, redirect ke SSO logout
         if ($ssoAlive) {
-            return redirect($ssoUrl);
+            return redirect()->away($ssoUrl);
         }
 
-        return redirect('/')->with('status', 'Anda telah keluar. Server SSO tidak dapat dihubungi.');
+        // 4. Fallback: kembali ke login dengan SweetAlert
+        return redirect()
+            ->route('login')
+            ->with('message', 'Anda telah berhasil logout.');
     }
 }

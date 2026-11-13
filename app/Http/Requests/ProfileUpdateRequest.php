@@ -9,24 +9,20 @@ use Illuminate\Validation\Rule;
 
 class ProfileUpdateRequest extends FormRequest
 {
-    /**
-     * Get the validation rules that apply to the request.
-     *
-     * @return array<string, ValidationRule|array<mixed>|string>
-     */
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
+            'nip' => ['required', 'string', 'max:30', Rule::unique(User::class)->ignore($this->user()->id)],
+            'nama_panggilan' => ['nullable', 'string', 'max:50'],
+            'pangkat_id' => ['nullable', 'exists:pangkats,id'],
+            'golongan_id' => ['nullable', 'exists:golongans,id'],
+            'jabatan_id' => ['nullable', 'exists:jabatans,id'],
+            'divisi_id' => ['nullable', 'exists:divisis,id'],
             'email' => [
-                'required',
-                'string',
-                'lowercase',
-                'email',
-                'max:255',
+                'required', 'string', 'lowercase', 'email', 'max:255',
                 Rule::unique(User::class)->ignore($this->user()->id),
             ],
-            // Tambahan validasi untuk upload TTD
             'ttd_path' => ['nullable', 'image', 'mimes:jpeg,png,jpg,webp', 'max:2048'],
         ];
     }

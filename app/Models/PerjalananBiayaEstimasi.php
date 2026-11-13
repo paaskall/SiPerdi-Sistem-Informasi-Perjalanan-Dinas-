@@ -9,7 +9,10 @@ class PerjalananBiayaEstimasi extends Model
     // TAMBAHKAN BARIS INI:
     protected $table = 'perjalanan_biaya_estimasi';
 
-    protected $fillable = ['perjalanan_id', 'coa_id', 'keterangan', 'nominal'];
+    protected $fillable = [
+        'perjalanan_id', 'coa_id', 'keterangan',
+        'qty', 'satuan', 'harga_satuan', 'nominal',
+    ];
 
     public function perjalanan() 
     { 

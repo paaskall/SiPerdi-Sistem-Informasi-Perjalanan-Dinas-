@@ -13,12 +13,16 @@ class DatabaseSeeder extends Seeder
     /**
      * Seed the application's database.
      */
+    
     public function run(): void
     {
         $this->call([
             RoleSeeder::class,
             MasterDataSeeder::class,
             AdminUserSeeder::class,
+            PangkatSeeder::class,
+            UserFromDataSeeder::class,
+            KotaSeeder::class,
         ]);
     }
 }

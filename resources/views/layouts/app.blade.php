@@ -99,4 +99,31 @@
             @endif
         </script>
     </body>
+
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script>
+    document.addEventListener('DOMContentLoaded', function () {
+        if (typeof Swal === 'undefined') return;
+
+        @if (session('message'))
+            Swal.fire({
+                icon: 'success',
+                title: 'Berhasil!',
+                text: @json(session('message')),
+                timer: 3000,
+                showConfirmButton: false
+            });
+        @endif
+
+        @if (session('status'))
+            Swal.fire({
+                icon: 'info',
+                title: 'Informasi',
+                text: @json(session('status')),
+                confirmButtonColor: '#1e3a8a',
+                confirmButtonText: 'OK'
+            });
+        @endif
+    });
+    </script>
 </html>

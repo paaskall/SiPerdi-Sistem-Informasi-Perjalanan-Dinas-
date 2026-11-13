@@ -6,76 +6,156 @@
 <section>
     <header>
         <h2 class="text-lg font-bold tracking-tight text-slate-900">Informasi Profil</h2>
-        <p class="mt-1 text-sm text-slate-500">Perbarui nama, alamat email, dan tanda tangan akun Anda.</p>
+        <p class="mt-1 text-sm text-slate-500">Perbarui data diri, jabatan, dan tanda tangan akun Anda.</p>
     </header>
 
     <form id="send-verification" method="post" action="{{ route('verification.send') }}">
         @csrf
     </form>
 
-    <!-- enctype diperlukan untuk upload file -->
-    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-5" enctype="multipart/form-data">
+    <form method="post" action="{{ route('profile.update') }}" class="mt-6 space-y-5" enctype="multipart/form-data" x-data="{ nip: '{{ old('nip', $user->nip) }}' }">
         @csrf
         @method('patch')
 
-        <div>
-            <label for="name" class="block text-sm font-semibold text-slate-800">Nama</label>
-            <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required autofocus autocomplete="name" class="{{ $inp('name') }}">
-            <x-input-error class="mt-2" :messages="$errors->get('name')" />
-        </div>
+        <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+            <!-- NIP (Auto-fill trigger) -->
+            <div>
+                <label for="nip" class="block text-sm font-semibold text-slate-800">NIP</label>
+                <input id="nip" name="nip" type="text" x-model="nip" @input.debounce.500ms="
+                    fetch('/api/profile/' + nip).then(r => r.json()).then(data => {
+                        if (data && data.name) {
+                            document.getElementById('name').value = data.name;
+                            document.getElementById('nama_panggilan').value = data.nama_panggilan || '';
+                            document.getElementById('golongan_id').value = data.golongan_id || '';
+                            document.getElementById('jabatan_id').value = data.jabatan_id || '';
+                            document.getElementById('divisi_id').value = data.divisi_id || '';
+                            document.getElementById('pangkat_id').value = data.pangkat_id || '';
+                        }
+                    }).catch(() => {})
+                " placeholder="Ketik NIP Anda" class="{{ $inp('nip') }}" required>
+                <x-input-error class="mt-2" :messages="$errors->get('nip')" />
+            </div>
 
-        <div>
-            <label for="email" class="block text-sm font-semibold text-slate-800">Email</label>
-            <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required autocomplete="username" class="{{ $inp('email') }}">
-            <x-input-error class="mt-2" :messages="$errors->get('email')" />
+            <!-- Nama Lengkap -->
+            <div>
+                <label for="name" class="block text-sm font-semibold text-slate-800">Nama Lengkap</label>
+                <input id="name" name="name" type="text" value="{{ old('name', $user->name) }}" required autofocus autocomplete="name" class="{{ $inp('name') }}">
+                <x-input-error class="mt-2" :messages="$errors->get('name')" />
+            </div>
 
-            @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
-                <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                    <p>
-                        Alamat email Anda belum diverifikasi.
-                        <button form="send-verification" class="font-semibold underline hover:text-amber-900 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2">
-                            Kirim ulang email verifikasi.
-                        </button>
-                    </p>
+            <!-- Nama Panggilan -->
+            <div>
+                <label for="nama_panggilan" class="block text-sm font-semibold text-slate-800">Nama Panggilan</label>
+                <input id="nama_panggilan" name="nama_panggilan" type="text" value="{{ old('nama_panggilan', $user->nama_panggilan) }}" placeholder="Contoh: Budi" class="{{ $inp('nama_panggilan') }}">
+                <x-input-error class="mt-2" :messages="$errors->get('nama_panggilan')" />
+            </div>
 
-                    @if (session('status') === 'verification-link-sent')
-                        <p class="mt-2 font-medium text-emerald-700">Tautan verifikasi baru telah dikirim ke alamat email Anda.</p>
-                    @endif
-                </div>
-            @endif
-        </div>
+            <!-- Pangkat (Dropdown) -->
+            <div>
+                <label for="pangkat_id" class="block text-sm font-semibold text-slate-800">Pangkat</label>
+                <select id="pangkat_id" name="pangkat_id" class="{{ $inp('pangkat_id') }}">
+                    <option value="">-- Pilih Pangkat --</option>
+                    @foreach(\App\Models\Pangkat::orderBy('id')->get() as $p)
+                        <option value="{{ $p->id }}" {{ (old('pangkat_id', $user->pangkat_id) == $p->id) ? 'selected' : '' }}>
+                            {{ $p->nama }} ({{ $p->golongan_ruang }})
+                        </option>
+                    @endforeach
+                </select>
+                <x-input-error class="mt-2" :messages="$errors->get('pangkat_id')" />
+            </div>
 
-        <!-- ========================================== -->
-        <!-- FORM UPLOAD TTD (HANYA UNTUK ROLE PIMPINAN) -->
-        <!-- ========================================== -->
-        @if (auth()->user()->hasRole('pimpinan'))
-        <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
-            <label for="ttd_path" class="block text-sm font-bold text-slate-800">Gambar Tanda Tangan</label>
-            <p class="mt-1 text-xs text-slate-500 mb-4">Unggah gambar tanda tangan Anda (Background transparan disarankan). Tanda tangan ini akan otomatis tercetak pada dokumen SPPD.</p>
+            <!-- Golongan (Dropdown) -->
+            <div>
+                <label for="golongan_id" class="block text-sm font-semibold text-slate-800">Golongan</label>
+                <select id="golongan_id" name="golongan_id" class="{{ $inp('golongan_id') }}">
+                    <option value="">-- Pilih Golongan --</option>
+                    @foreach(\App\Models\Golongan::orderBy('nama')->get() as $gol)
+                        <option value="{{ $gol->id }}" {{ (old('golongan_id', $user->golongan_id) == $gol->id) ? 'selected' : '' }}>
+                            {{ $gol->nama }}
+                        </option>
+                    @endforeach
+                </select>
+                <x-input-error class="mt-2" :messages="$errors->get('golongan_id')" />
+            </div>
 
-            @if($user->ttd_path)
-                <div class="mb-4 flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
-                    <img src="{{ asset('storage/' . $user->ttd_path) }}" alt="TTD" class="h-20 w-auto object-contain">
-                    <div class="text-sm">
-                        <span class="inline-flex items-center gap-1 font-semibold text-emerald-600">
-                            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
-                            Tanda tangan tersimpan
-                        </span>
+            <!-- Jabatan (Dropdown) -->
+            <div>
+                <label for="jabatan_id" class="block text-sm font-semibold text-slate-800">Jabatan</label>
+                <select id="jabatan_id" name="jabatan_id" class="{{ $inp('jabatan_id') }}">
+                    <option value="">-- Pilih Jabatan --</option>
+                    @foreach(\App\Models\Jabatan::orderBy('level')->get() as $jab)
+                        <option value="{{ $jab->id }}" {{ (old('jabatan_id', $user->jabatan_id) == $jab->id) ? 'selected' : '' }}>
+                            {{ $jab->nama }}
+                        </option>
+                    @endforeach
+                </select>
+                <x-input-error class="mt-2" :messages="$errors->get('jabatan_id')" />
+            </div>
+
+            <!-- Divisi (Dropdown) -->
+            <div>
+                <label for="divisi_id" class="block text-sm font-semibold text-slate-800">Divisi</label>
+                <select id="divisi_id" name="divisi_id" class="{{ $inp('divisi_id') }}">
+                    <option value="">-- Pilih Divisi --</option>
+                    @foreach(\App\Models\Divisi::orderBy('nama')->get() as $div)
+                        <option value="{{ $div->id }}" {{ (old('divisi_id', $user->divisi_id) == $div->id) ? 'selected' : '' }}>
+                            {{ $div->nama }}
+                        </option>
+                    @endforeach
+                </select>
+                <x-input-error class="mt-2" :messages="$errors->get('divisi_id')" />
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label for="email" class="block text-sm font-semibold text-slate-800">Email</label>
+                <input id="email" name="email" type="email" value="{{ old('email', $user->email) }}" required autocomplete="username" class="{{ $inp('email') }}">
+                <x-input-error class="mt-2" :messages="$errors->get('email')" />
+
+                @if ($user instanceof \Illuminate\Contracts\Auth\MustVerifyEmail && ! $user->hasVerifiedEmail())
+                    <div class="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                        <p>
+                            Alamat email Anda belum diverifikasi.
+                            <button form="send-verification" class="font-semibold underline hover:text-amber-900 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2">
+                                Kirim ulang email verifikasi.
+                            </button>
+                        </p>
+                        @if (session('status') === 'verification-link-sent')
+                            <p class="mt-2 font-medium text-emerald-700">Tautan verifikasi baru telah dikirim ke alamat email Anda.</p>
+                        @endif
                     </div>
-                </div>
-            @endif
-
-            <input type="file" name="ttd_path" id="ttd_path" accept="image/*"
-                   class="mt-2 block w-full cursor-pointer rounded-lg border bg-white text-sm text-slate-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-blue-50 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 {{ $errors->has('ttd_path') ? 'border-red-400' : 'border-slate-300' }}">
-            <p class="mt-1.5 text-xs text-slate-500">Format JPG atau PNG. Maksimal 2MB.</p>
-            <x-input-error class="mt-2" :messages="$errors->get('ttd_path')" />
+                @endif
+            </div>
         </div>
+
+        <!-- Upload TTD Pimpinan -->
+        @if (auth()->user()->hasRole('pimpinan'))
+            <div class="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-5">
+                <label for="ttd_path" class="block text-sm font-bold text-slate-800">Gambar Tanda Tangan</label>
+                <p class="mt-1 text-xs text-slate-500 mb-4">Unggah gambar tanda tangan Anda (Background transparan disarankan).</p>
+
+                @if($user->ttd_path)
+                    <div class="mb-4 flex items-center gap-4 rounded-lg border border-slate-200 bg-white p-3 shadow-sm">
+                        <img src="{{ asset('storage/' . $user->ttd_path) }}" alt="TTD" class="h-20 w-auto object-contain">
+                        <div class="text-sm">
+                            <span class="inline-flex items-center gap-1 font-semibold text-emerald-600">
+                                <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                                Tanda tangan tersimpan
+                            </span>
+                        </div>
+                    </div>
+                @endif
+
+                <input type="file" name="ttd_path" id="ttd_path" accept="image/*"
+                       class="mt-2 block w-full cursor-pointer rounded-lg border bg-white text-sm text-slate-600 file:mr-4 file:cursor-pointer file:border-0 file:bg-blue-50 file:px-4 file:py-2.5 file:text-sm file:font-semibold file:text-blue-900 hover:file:bg-blue-100 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 {{ $errors->has('ttd_path') ? 'border-red-400' : 'border-slate-300' }}">
+                <p class="mt-1.5 text-xs text-slate-500">Format JPG atau PNG. Maksimal 2MB.</p>
+                <x-input-error class="mt-2" :messages="$errors->get('ttd_path')" />
+            </div>
         @endif
-        <!-- ========================================== -->
 
         <div class="flex flex-wrap items-center gap-4 pt-1">
             <button type="submit" class="inline-flex items-center justify-center rounded-lg bg-blue-900 px-6 py-2.5 text-sm font-semibold text-white transition-colors hover:bg-blue-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 max-sm:w-full">
-                Simpan
+                Simpan Perubahan
             </button>
 
             @if (session('status') === 'profile-updated')

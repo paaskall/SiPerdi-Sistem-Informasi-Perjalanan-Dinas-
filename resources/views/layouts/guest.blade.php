@@ -13,7 +13,7 @@
         <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
-        @vite(['resources/css/app.css', 'resources/js/app.js'])
+        @vite(['resources/css/app.css'])
 
         <style>
             body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
@@ -58,7 +58,7 @@
                     </a>
                 </div>
 
-                <!-- Kartu login (tepat di tengah layar) -->
+                <!-- Kartu konten (tepat di tengah layar) -->
                 <div class="row-start-2 flex justify-center px-4 py-8 sm:px-6">
                     <div class="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 sm:p-8 lg:border-0 lg:p-0">
                         {{ $slot }}
@@ -69,5 +69,68 @@
             </main>
 
         </div>
+
+        <!-- ============================================================
+             SWEETALERT + LIVEWIRE (untuk halaman guest: forgot, reset, verify)
+             ============================================================ -->
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        @livewireScripts
+
+        <script>
+        document.addEventListener('livewire:init', () => {
+            const notifEvents = ['swal', 'swal:success', 'swal:error', 'swal:info', 'swal:warning'];
+            notifEvents.forEach(eventName => {
+                Livewire.on(eventName, (payload) => {
+                    const config = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                    let defaultIcon = 'info';
+                    if (eventName.includes('success')) defaultIcon = 'success';
+                    if (eventName.includes('error'))   defaultIcon = 'error';
+                    if (eventName.includes('warning')) defaultIcon = 'warning';
+
+                    Swal.fire({
+                        icon: config.icon || defaultIcon,
+                        title: config.title || 'Informasi',
+                        text: config.text || '',
+                        confirmButtonColor: '#1e3a8a',
+                        ...config,
+                    });
+                });
+            });
+
+            Livewire.on('swal:confirm', (payload) => {
+                const config = Array.isArray(payload) ? (payload[0] ?? {}) : (payload ?? {});
+                Swal.fire({
+                    title: config.title || 'Konfirmasi',
+                    text: config.text || 'Yakin lanjut?',
+                    icon: config.icon || 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#1e3a8a',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: config.confirmButtonText || 'Ya',
+                    cancelButtonText: config.cancelButtonText || 'Batal',
+                }).then((result) => {
+                    if (result.isConfirmed && config.method) {
+                        Livewire.dispatch(config.method, config.params ?? {});
+                    }
+                });
+            });
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (typeof Swal === 'undefined') return;
+
+            @if(session('message'))
+                Swal.fire({ icon: 'success', title: 'Berhasil!', text: @json(session('message')), timer: 3000, showConfirmButton: false });
+            @endif
+
+            @if(session('error'))
+                Swal.fire({ icon: 'error', title: 'Gagal!', text: @json(session('error')), confirmButtonColor: '#1e3a8a' });
+            @endif
+
+            @if($errors->any())
+                Swal.fire({ icon: 'error', title: 'Gagal!', text: @json($errors->first()), confirmButtonColor: '#1e3a8a' });
+            @endif
+        });
+        </script>
     </body>
 </html>
