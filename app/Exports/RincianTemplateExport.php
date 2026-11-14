@@ -10,30 +10,17 @@ use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/**
- * Mengisi storage/app/templates/rincian_template.xlsx (placeholder {{nama}}).
- *
- * Template punya DUA tabel, masing-masing 10 baris:
- *   1) "Biaya Perjalanan Dinas yang telah dibayar semula"      -> {{ket_n}}, {{qty_n}}, ...
- *   2) "Ditetapkan sejumlah realisasi pengeluaran riil"         -> {{real_ket_n}}, {{real_qty_n}}, ...
- *
- * Pemakaian di controller (WAJIB di-return):
- *   return (new RincianTemplateExport($perjalanan))->download('RINCIAN-001.xlsx');
- */
 class RincianTemplateExport
 {
-    /** Posisi baris pertama tiap tabel di template. */
     private const TABEL = [
-        ''      => 9,    // tabel 1: baris 9-18
-        'real_' => 22,   // tabel 2: baris 22-31
+        ''      => 9,
+        'real_' => 22,
     ];
     private const MAX_ROWS = 10;
 
-    /** Kolom yang diisi per baris rincian (lihat template). */
     private const KOLOM_BARIS  = ['A', 'B', 'E', 'F', 'G', 'H', 'I', 'J', 'K'];
-    private const KOLOM_HITUNG = ['E', 'F', 'G', 'H', 'I', 'J'];   // "( qty satuan x harga )"
+    private const KOLOM_HITUNG = ['E', 'F', 'G', 'H', 'I', 'J'];
 
-    /** Kolom satuan di template hanya selebar ±2 huruf, jadi satuan dipendekkan. */
     private const SINGKATAN = [
         'kali' => 'kl', 'hari' => 'hr', 'malam' => 'mlm', 'orang' => 'org',
         'paket' => 'pkt', 'lembar' => 'lbr', 'buah' => 'bh',
@@ -71,28 +58,20 @@ class RincianTemplateExport
 
         [$text, $numeric, $info] = $this->buildData();
 
-        // 1) Ganti semua placeholder
         foreach ($sheet->getRowIterator() as $row) {
             $cells = $row->getCellIterator();
             $cells->setIterateOnlyExistingCells(true);
 
             foreach ($cells as $cell) {
                 $val = $cell->getValue();
-                if ($val instanceof RichText) {          // teks inline dibaca sebagai RichText
-                    $val = $val->getPlainText();
-                }
-                if (! is_string($val) || ! str_contains($val, '{{')) {
-                    continue;
-                }
+                if ($val instanceof RichText) { $val = $val->getPlainText(); }
+                if (! is_string($val) || ! str_contains($val, '{{')) { continue; }
 
-                // Sel berisi HANYA satu placeholder angka -> tulis sebagai angka (format Rp dari template berlaku)
                 if (preg_match('/^\{\{(\w+)\}\}$/', $val, $m) && array_key_exists($m[1], $numeric)) {
                     $cell->setValueExplicit($numeric[$m[1]], DataType::TYPE_NUMERIC);
                     continue;
                 }
 
-                // Teks WAJIB ditulis sebagai string eksplisit: NIP berupa deretan angka
-                // akan diubah jadi angka (1.99E+17) bila memakai setValue() biasa.
                 $cell->setValueExplicit(
                     preg_replace_callback('/\{\{(\w+)\}\}/', fn ($mm) => $text[$mm[1]] ?? '', $val),
                     DataType::TYPE_STRING
@@ -100,10 +79,9 @@ class RincianTemplateExport
             }
         }
 
-        // 2) Baris tak terpakai dikosongkan (tidak dihapus: merged cell & posisi total tetap)
         foreach (self::TABEL as $prefix => $first) {
             $jumlahBaris = $info[$prefix]['count'];
-            $ringkas     = $info[$prefix]['ringkas'];   // baris tanpa "( qty x harga )", mis. tiket
+            $ringkas     = $info[$prefix]['ringkas'];
 
             for ($i = 1; $i <= self::MAX_ROWS; $i++) {
                 $r = $first + $i - 1;
@@ -123,9 +101,6 @@ class RincianTemplateExport
         return $spreadsheet;
     }
 
-    /**
-     * @return array{0: array<string,string>, 1: array<string,float|int>, 2: array<string,array>}
-     */
     private function buildData(): array
     {
         $p       = $this->perjalanan;
@@ -135,7 +110,6 @@ class RincianTemplateExport
         $numeric = [];
         $info    = [];
 
-        // --- Dua tabel rincian ---
         $sumber = [
             ''      => $p->rincianBiaya,
             'real_' => $this->rincianRealisasi(),
@@ -163,7 +137,7 @@ class RincianTemplateExport
 
                 [$ket, $tiket] = $this->uraian($r);
                 if ($tiket) {
-                    $info[$prefix]['ringkas'][] = $n;    // tiket: tampil lumpsum tanpa "( qty x harga )"
+                    $info[$prefix]['ringkas'][] = $n;
                 }
 
                 $text["{$prefix}ket_$n"]        = $ket;
@@ -194,20 +168,14 @@ class RincianTemplateExport
             'nip_ppk'              => (string) ($p->nip_ppk ?? ''),
         ];
 
-        $numeric['total']           = $totalBayar;                      // yang telah dibayar semula (UMK)
-        $numeric['total_realisasi'] = $totalRealisasi;                  // ditetapkan (realisasi riil)
-        $numeric['selisih']         = $totalRealisasi - $totalBayar;    // sisa kurang/lebih
+        $numeric['total']           = $totalBayar;
+        $numeric['total_realisasi'] = $totalRealisasi;
+        $numeric['selisih']         = $totalRealisasi - $totalBayar;
         $numeric['hari_dokumen']    = (int) $dokumen->day;
 
         return [$text, $numeric, $info];
     }
 
-    /**
-     * Sumber data tabel 2 (realisasi riil).
-     * Jika model PerjalananDinas punya relasi rincianRealisasi() maka dipakai;
-     * jika belum, sementara memakai data yang sama dengan tabel 1.
-     * >>> SESUAIKAN di sini begitu data realisasi dari laporan tersedia. <<<
-     */
     private function rincianRealisasi()
     {
         if (method_exists($this->perjalanan, 'rincianRealisasi')) {
@@ -221,15 +189,22 @@ class RincianTemplateExport
     private function uraian($item): array
     {
         $ket   = (string) ($item->keterangan ?: ($item->coa->nama ?? '-'));
-        $lower = strtolower($ket);
+        $lower = strtolower($ket . ' ' . ($item->coa->nama ?? ''));
+        $p     = $this->perjalanan;
 
-        if (str_contains($lower, 'tiket') || str_contains($lower, 'pesawat') || str_contains($lower, 'transport')) {
-            $p     = $this->perjalanan;
+        // 1. TIKET PESAWAT / KERETA
+        if (str_contains($lower, 'tiket') || str_contains($lower, 'ticket') || str_contains($lower, 'pesawat') || str_contains($lower, 'kereta')) {
             $asal  = $p->tempat_berangkat ?? 'Asal';
             $prov  = $p->kotaTujuan->provinsi ?? '';
             $kota  = $p->kotaTujuan->nama ?? 'Tujuan';
-
             return ["Tiket {$asal} - " . ($prov ? "{$prov}, " : '') . $kota, true];
+        }
+
+        // 2. TAKSI / TRANSPORT LOKAL
+        if (str_contains($lower, 'taksi') || str_contains($lower, 'taxi') || str_contains($lower, 'transport') || str_contains($lower, 'ojek') || str_contains($lower, 'angkutan darat')) {
+            $asal  = $p->tempat_berangkat ?? 'Asal';
+            $kota  = $p->kotaTujuan->nama ?? 'Tujuan';
+            return ["Taksi {$asal} - {$kota} PP", false];
         }
 
         return [$ket, false];

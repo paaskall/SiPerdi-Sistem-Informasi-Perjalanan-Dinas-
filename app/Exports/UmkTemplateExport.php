@@ -10,15 +10,8 @@ use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/**
- * Mengisi storage/app/templates/umk_template.xlsx (placeholder {{nama}}) dengan data perjalanan dinas.
- *
- * Pemakaian di controller (WAJIB di-return):
- *   return (new UmkTemplateExport($perjalanan))->download('UMK-001.xlsx');
- */
 class UmkTemplateExport
 {
-    /** Baris rincian di template: 13 s/d 22 (10 baris). */
     private const FIRST_ROW = 13;
     private const MAX_ROWS  = 10;
 
@@ -31,7 +24,6 @@ class UmkTemplateExport
         $this->templatePath = storage_path('app/templates/umk_template.xlsx');
     }
 
-    /** Download sebagai file Excel. */
     public function download(string $filename = 'UMK.xlsx'): StreamedResponse
     {
         $spreadsheet = $this->generate();
@@ -43,13 +35,11 @@ class UmkTemplateExport
         ]);
     }
 
-    /** Simpan hasil ke file .xlsx (dipakai untuk konversi ke PDF). */
     public function saveTo(string $path): void
     {
         IOFactory::createWriter($this->generate(), 'Xlsx')->save($path);
     }
 
-    /** Isi template dengan data perjalanan, kembalikan Spreadsheet-nya. */
     public function generate(): Spreadsheet
     {
         $spreadsheet = IOFactory::load($this->templatePath);
@@ -57,25 +47,15 @@ class UmkTemplateExport
 
         [$text, $numeric, $usedRows] = $this->buildData();
 
-        // 1) Ganti semua placeholder
         foreach ($sheet->getRowIterator() as $row) {
             $cells = $row->getCellIterator();
             $cells->setIterateOnlyExistingCells(true);
 
             foreach ($cells as $cell) {
                 $val = $cell->getValue();
+                if ($val instanceof RichText) { $val = $val->getPlainText(); }
+                if (! is_string($val) || ! str_contains($val, '{{')) { continue; }
 
-                // Teks inline (t="inlineStr") dibaca PhpSpreadsheet sebagai RichText, bukan string.
-                if ($val instanceof RichText) {
-                    $val = $val->getPlainText();
-                }
-
-                if (! is_string($val) || ! str_contains($val, '{{')) {
-                    continue;
-                }
-
-                // Sel yang isinya HANYA satu placeholder angka -> tulis sebagai angka
-                // supaya format Rp/ribuan dari template tetap berlaku.
                 if (preg_match('/^\{\{(\w+)\}\}$/', $val, $m) && array_key_exists($m[1], $numeric)) {
                     $cell->setValueExplicit($numeric[$m[1]], DataType::TYPE_NUMERIC);
                     continue;
@@ -89,8 +69,6 @@ class UmkTemplateExport
             }
         }
 
-        // 2) Kosongkan baris rincian yang tidak terpakai (baris TIDAK dihapus,
-        //    supaya merged cell & posisi total/tanda tangan tidak bergeser).
         for ($i = $usedRows + 1; $i <= self::MAX_ROWS; $i++) {
             $r = self::FIRST_ROW + $i - 1;
             foreach (['C', 'D', 'H', 'I', 'J', 'K', 'L', 'M'] as $col) {
@@ -101,9 +79,6 @@ class UmkTemplateExport
         return $spreadsheet;
     }
 
-    /**
-     * @return array{0: array<string,string>, 1: array<string,float|int>, 2: int}
-     */
     private function buildData(): array
     {
         $p       = $this->perjalanan;
@@ -111,25 +86,38 @@ class UmkTemplateExport
         $rincian = $p->rincianBiaya->values();
 
         if ($rincian->count() > self::MAX_ROWS) {
-            throw new \RuntimeException(
-                'Template UMK hanya memuat ' . self::MAX_ROWS . ' baris rincian, sedangkan data berisi ' . $rincian->count() . ' baris.'
-            );
+            throw new \RuntimeException('Template UMK hanya memuat ' . self::MAX_ROWS . ' baris rincian.');
         }
 
         $text    = [];
         $numeric = [];
         $total   = 0;
 
-        // --- Rincian biaya ---
+        // --- Rincian biaya & Auto-text Taksi ---
         foreach ($rincian as $idx => $r) {
             $n      = $idx + 1;
+            
+            // Paksa casting ke float dan hitung ulang Qty x Harga
             $qty    = (float) ($r->qty ?? 1);
-            $harga  = (float) ($r->harga ?? $r->nominal ?? 0);
-            $jumlah = $qty * $harga;
+            $harga  = (float) ($r->harga_satuan ?? 0); // pastikan ambil dari harga_satuan
+            $jumlah = $qty * $harga; 
+            
             $total += $jumlah;
 
-            $text["ket_$n"]    = (string) ($r->keterangan ?: ($r->coa->nama ?? '-'));
+            $ket = (string) ($r->keterangan ?: ($r->coa->nama ?? '-'));
+            $lower = strtolower($ket . ' ' . ($r->coa->nama ?? ''));
+
+            // Logika Auto-Text Taksi
+            if (str_contains($lower, 'taksi') || str_contains($lower, 'taxi') || str_contains($lower, 'transport') || str_contains($lower, 'ojek')) {
+                $asal = $p->tempat_berangkat ?? 'Asal';
+                $tujuan = $p->kotaTujuan->nama ?? 'Tujuan';
+                $ket = "Taksi {$asal} - {$tujuan} PP";
+            }
+
+            $text["ket_$n"]    = $ket;
             $text["satuan_$n"] = (string) ($r->satuan ?? 'kali');
+            
+            // Kirim nilai yang sudah pasti benar ke Excel
             $numeric["qty_$n"]    = $qty;
             $numeric["harga_$n"]  = $harga;
             $numeric["jumlah_$n"] = $jumlah;
@@ -155,7 +143,6 @@ class UmkTemplateExport
             'tanggal_dokumen'   => $dokumen->translatedFormat('j F Y'),
             'terbilang'         => $this->terbilangRupiah($total),
 
-            // Pegawai (penerima uang)
             'nama_pegawai'      => (string) ($pegawai->name ?? ''),
             'nip'               => (string) ($pegawai->nip ?? ''),
             'jabatan'           => (string) ($pegawai->jabatan->nama ?? '-'),
@@ -163,7 +150,6 @@ class UmkTemplateExport
             'nama_penerima'     => (string) ($pegawai->name ?? ''),
             'nip_penerima'      => (string) ($pegawai->nip ?? ''),
 
-            // Tanda tangan
             'nama_bendahara'    => (string) ($p->nama_bendahara ?? ''),
             'nip_bendahara'     => (string) ($p->nip_bendahara ?? ''),
             'nama_ppk'          => (string) ($p->nama_ppk ?? ''),
@@ -179,14 +165,12 @@ class UmkTemplateExport
     {
         $angka = (int) round($angka);
         $hasil = $angka === 0 ? 'nol' : trim($this->terbilang($angka));
-
         return ucfirst(preg_replace('/\s+/', ' ', $hasil)) . ' rupiah';
     }
 
     private function terbilang(int $n): string
     {
         $huruf = ['', 'satu', 'dua', 'tiga', 'empat', 'lima', 'enam', 'tujuh', 'delapan', 'sembilan', 'sepuluh', 'sebelas'];
-
         if ($n < 12)            return $huruf[$n];
         if ($n < 20)            return $this->terbilang($n - 10) . ' belas';
         if ($n < 100)           return $this->terbilang(intdiv($n, 10)) . ' puluh ' . $this->terbilang($n % 10);
@@ -196,7 +180,6 @@ class UmkTemplateExport
         if ($n < 1000000)       return $this->terbilang(intdiv($n, 1000)) . ' ribu ' . $this->terbilang($n % 1000);
         if ($n < 1000000000)    return $this->terbilang(intdiv($n, 1000000)) . ' juta ' . $this->terbilang($n % 1000000);
         if ($n < 1000000000000) return $this->terbilang(intdiv($n, 1000000000)) . ' miliar ' . $this->terbilang($n % 1000000000);
-
         return (string) $n;
     }
 }

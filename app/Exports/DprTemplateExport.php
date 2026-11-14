@@ -10,20 +10,10 @@ use PhpOffice\PhpSpreadsheet\RichText\RichText;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/**
- * Daftar Pengeluaran Riil (DPR): mengisi storage/app/templates/dpr_template.xlsx.
- *
- * DPR memuat biaya transport & penginapan yang tidak ada bukti pengeluarannya.
- * Baris yang masuk ditentukan oleh method termasukDpr() (hotel/penginapan dan transport lokal).
- *
- * Pemakaian di controller (WAJIB di-return):
- *   return (new DprTemplateExport($perjalanan))->download('DPR-001.xlsx');
- */
 class DprTemplateExport
 {
     private const KODE_KLASIFIKASI = 'PLB.1.2.1/SDM.04.1';
 
-    /** Template memuat 5 baris uraian (baris 21-25). */
     private const MAX_ROWS = 5;
     private const BARIS_AWAL = 21;
 
@@ -65,20 +55,18 @@ class DprTemplateExport
 
             foreach ($cells as $cell) {
                 $val = $cell->getValue();
-                if ($val instanceof RichText) {          // teks inline dibaca sebagai RichText
+                if ($val instanceof RichText) {
                     $val = $val->getPlainText();
                 }
                 if (! is_string($val) || ! str_contains($val, '{{')) {
                     continue;
                 }
 
-                // Sel berisi HANYA satu placeholder angka -> tulis sebagai angka
                 if (preg_match('/^\{\{(\w+)\}\}$/', $val, $m) && array_key_exists($m[1], $numeric)) {
                     $cell->setValueExplicit($numeric[$m[1]], DataType::TYPE_NUMERIC);
                     continue;
                 }
 
-                // Teks WAJIB string eksplisit (NIP berupa angka tidak boleh jadi 1.99E+17)
                 $cell->setValueExplicit(
                     preg_replace_callback('/\{\{(\w+)\}\}/', fn ($mm) => $text[$mm[1]] ?? '', $val),
                     DataType::TYPE_STRING
@@ -86,7 +74,6 @@ class DprTemplateExport
             }
         }
 
-        // Baris uraian yang tak terpakai dikosongkan (baris tidak dihapus agar tabel tetap utuh)
         for ($i = $jumlahBaris + 1; $i <= self::MAX_ROWS; $i++) {
             $r = self::BARIS_AWAL + $i - 1;
             foreach (['B', 'C', 'I'] as $col) {
@@ -97,9 +84,6 @@ class DprTemplateExport
         return $spreadsheet;
     }
 
-    /**
-     * @return array{0: array<string,string>, 1: array<string,float|int>, 2: int}
-     */
     private function buildData(): array
     {
         $p       = $this->perjalanan;
@@ -111,13 +95,23 @@ class DprTemplateExport
             if (! $this->termasukDpr($r)) {
                 continue;
             }
+
+            $ket = (string) ($r->keterangan ?: ($r->coa->nama ?? '-'));
+            $lower = strtolower($ket . ' ' . ($r->coa->nama ?? ''));
+
+            // Format teks khusus jika ini Taksi/Transport
+            if (str_contains($lower, 'taksi') || str_contains($lower, 'taxi') || str_contains($lower, 'transport') || str_contains($lower, 'ojek')) {
+                $asal  = $p->tempat_berangkat ?? 'Asal';
+                $kota  = $p->kotaTujuan->nama ?? 'Tujuan';
+                $ket = "Taksi {$asal} - {$kota} PP";
+            }
+
             $baris[] = [
-                'ket'    => (string) ($r->keterangan ?: ($r->coa->nama ?? '-')),
+                'ket'    => $ket,
                 'jumlah' => (float) ($r->nominal ?? ((float) ($r->qty ?? 1) * (float) ($r->harga_satuan ?? 0))),
             ];
         }
 
-        // Lebih dari 5 baris: baris ke-5 menampung sisanya, supaya total tetap benar
         if (count($baris) > self::MAX_ROWS) {
             $sisa  = array_slice($baris, self::MAX_ROWS - 1);
             $baris = array_slice($baris, 0, self::MAX_ROWS - 1);
@@ -159,12 +153,6 @@ class DprTemplateExport
         return [$text, $numeric, count($baris)];
     }
 
-    /**
-     * Apakah baris rincian ini termasuk DPR?
-     * Ya: penginapan/hotel dan transport lokal (taksi, ojek, dll).
-     * Tidak: tiket pesawat/kereta (ada bukti tiket) dan uang harian (lumpsum).
-     * >>> Sesuaikan kata kunci di sini jika aturan instansi berbeda. <<<
-     */
     private function termasukDpr($item): bool
     {
         $s = strtolower(($item->coa->nama ?? '') . ' ' . ($item->keterangan ?? ''));

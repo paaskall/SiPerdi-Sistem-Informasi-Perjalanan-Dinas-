@@ -5,6 +5,7 @@ namespace App\Livewire\Perjalanan;
 use App\Models\PerjalananDinas;
 use App\Models\Kota;
 use App\Models\Coa;
+use App\Models\TarifHari;
 use Livewire\Component;
 
 class FormPengajuan extends Component
@@ -25,18 +26,15 @@ class FormPengajuan extends Component
         $this->profilLengkap = $user->profilLengkap();
         $this->missing = $user->dataProfilKurang();
 
-        // 1. Cek apakah ada parameter ?edit=ID di URL
         $editId = request()->query('edit');
 
         if ($editId) {
             $perjalanan = PerjalananDinas::with(['rincianBiaya', 'kotaTujuan'])->findOrFail($editId);
 
-            // Validasi Keamanan: Pastikan ini milik user ybs & statusnya masih DRAFT
             if ($perjalanan->pegawai_id !== $user->id || $perjalanan->status !== 'DRAFT') {
                 abort(403, 'Anda tidak memiliki akses untuk mengedit form ini atau form sudah diproses.');
             }
 
-            // Isi data ke form (Mode Edit)
             $this->no_pembukuan = $perjalanan->no_pembukuan;
             $this->akun = $perjalanan->akun;
             $this->no_spd = $perjalanan->no_spd;
@@ -47,18 +45,15 @@ class FormPengajuan extends Component
             $this->alat_angkutan = $perjalanan->alat_angkutan;
             $this->tingkat_biaya = $perjalanan->tingkat_biaya;
             
-            // Format tanggal Y-m-d untuk input HTML <input type="date">
             $this->tanggal_berangkat = $perjalanan->tanggal_berangkat ? $perjalanan->tanggal_berangkat->format('Y-m-d') : null;
             $this->tanggal_pulang = $perjalanan->tanggal_pulang ? $perjalanan->tanggal_pulang->format('Y-m-d') : null;
             
-            // Hitung ulang jumlah hari untuk memastikan sinkron
             if ($this->tanggal_berangkat && $this->tanggal_pulang) {
                 $start = \Carbon\Carbon::parse($this->tanggal_berangkat);
                 $end = \Carbon\Carbon::parse($this->tanggal_pulang);
                 $this->jumlah_hari = $start->diffInDays($end) + 1;
             }
 
-            // Isi Rincian Biaya
             $this->rincian = $perjalanan->rincianBiaya->map(function ($item) {
                 return [
                     'coa_id' => $item->coa_id,
@@ -70,20 +65,16 @@ class FormPengajuan extends Component
                 ];
             })->toArray();
 
-            // Hitung ulang total estimasi
             $this->hitungTotal();
 
         } else {
-            // 2. Mode Buat Baru (Default)
             $this->tempat_berangkat = 'Makassar';
 
-            // Auto-generate No. Pembukuan, Akun, Kode SPD
             $count = PerjalananDinas::whereYear('created_at', date('Y'))->count() + 1;
             $this->no_pembukuan = 'PB/' . date('Y') . '/' . str_pad($count, 3, '0', STR_PAD_LEFT);
             $this->akun = '086.01.CO.4825.ABQ.001.051.A.524111';
             $this->no_spd = (2866 + $count) . '/PLB.1.2.1/SDM.04.1';
 
-            // Siapkan 1 baris kosong di awal
             $this->tambahBaris();
         }
     }
@@ -93,9 +84,36 @@ class FormPengajuan extends Component
         $this->kota_tujuan_id = null;
     }
 
+    // ✅ FUNGSI BARU: AUTO-FILL TARIF HARIAN SAAT KOTA DIPILIH
+    public function updatedKotaTujuanId()
+    {
+        if (!$this->kota_tujuan_id) return;
+
+        $user = auth()->user();
+        
+        // Cari tarif berdasarkan kota dan golongan user
+        $tarif = TarifHari::where('kota_id', $this->kota_tujuan_id)
+            ->where('golongan_id', $user->golongan_id)
+            ->first();
+
+        if ($tarif) {
+            // Cari baris rincian yang COA-nya mengandung "uang harian" atau "harian"
+            foreach ($this->rincian as $index => $item) {
+                $coa = $item['coa_id'] ? Coa::find($item['coa_id']) : null;
+                $namaCoa = $coa ? strtolower($coa->nama) : '';
+                
+                if (str_contains($namaCoa, 'uang harian') || str_contains($namaCoa, 'harian')) {
+                    $qty = (float) ($this->rincian[$index]['qty'] ?? 1);
+                    $this->rincian[$index]['harga_satuan'] = (float) $tarif->nominal;
+                    $this->rincian[$index]['nominal'] = $qty * $tarif->nominal;
+                }
+            }
+            $this->hitungTotal();
+        }
+    }
+
     public function updated($property)
     {
-        // 1. HITUNG LAMA HARI
         if (in_array($property, ['tanggal_berangkat', 'tanggal_pulang'])) {
             if ($this->tanggal_berangkat && $this->tanggal_pulang) {
                 $start = \Carbon\Carbon::parse($this->tanggal_berangkat);
@@ -106,7 +124,6 @@ class FormPengajuan extends Component
             }
         }
 
-        // 2. AUTO-SYNC QTY (PENGINAPAN & UANG HARIAN)
         if (str_contains($property, 'rincian.') && str_ends_with($property, '.coa_id')) {
             $parts = explode('.', $property);
             $index = (int) $parts[1];
@@ -115,27 +132,34 @@ class FormPengajuan extends Component
                 $coa = Coa::find($this->rincian[$index]['coa_id']);
                 $namaCoa = $coa ? strtolower($coa->nama) : '';
 
-                // --- LOGIKA PENGINAPAN ---
                 if (str_contains($namaCoa, 'penginapan') || str_contains($namaCoa, 'hotel') || str_contains($namaCoa, 'akomodasi')) {
                     $qtyPenginapan = max(1, $this->jumlah_hari - 1);
                     $this->rincian[$index]['qty'] = $qtyPenginapan;
                     $this->rincian[$index]['satuan'] = 'malam';
                 } 
-                // --- LOGIKA UANG HARIAN ---
                 elseif (str_contains($namaCoa, 'uang harian') || str_contains($namaCoa, 'uang saku') || str_contains($namaCoa, 'harian')) {
                     $qtyHarian = $this->jumlah_hari; // Full sejumlah hari
                     $this->rincian[$index]['qty'] = $qtyHarian;
                     $this->rincian[$index]['satuan'] = 'OH';
+
+                    // ✅ AUTO-FILL HARGA SAAT COA HARIAN DIPILIH (JIKA KOTA SUDAH ADA)
+                    if ($this->kota_tujuan_id) {
+                        $tarif = TarifHari::where('kota_id', $this->kota_tujuan_id)
+                            ->where('golongan_id', auth()->user()->golongan_id)
+                            ->first();
+                        
+                        if ($tarif) {
+                            $this->rincian[$index]['harga_satuan'] = (float) $tarif->nominal;
+                        }
+                    }
                 }
 
-                // Reset harga satuan jika kosong (opsional)
                 if(empty($this->rincian[$index]['harga_satuan'])){
                     $this->rincian[$index]['harga_satuan'] = 0;
                 }
             }
         }
 
-        // 3. HITUNG TOTAL
         if (str_contains($property, 'rincian')) {
             $this->hitungTotal();
         }

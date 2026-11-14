@@ -23,6 +23,7 @@ class DatabaseSeeder extends Seeder
             PangkatSeeder::class,
             UserFromDataSeeder::class,
             KotaSeeder::class,
+            TarifHariSeeder::class,
         ]);
     }
 }
