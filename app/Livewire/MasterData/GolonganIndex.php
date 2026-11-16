@@ -25,8 +25,9 @@ class GolonganIndex extends Component
         $golongans = Golongan::where('nama', 'like', '%'.$this->search.'%')
             ->orderBy('nama')->paginate(10);
 
-        return view('livewire.master-data.golongan-index', compact('golongans'))
-            ->layout('layouts.app');
+    return view('livewire.master-data.golongan-index', compact('golongans'))
+        ->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
+    
     }
 
     public function openModal() { $this->resetFields(); $this->isModalOpen = true; }

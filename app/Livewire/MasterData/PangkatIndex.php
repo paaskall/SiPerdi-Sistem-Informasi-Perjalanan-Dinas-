@@ -32,7 +32,7 @@ class PangkatIndex extends Component
             ->paginate(10);
 
         return view('livewire.master-data.pangkat-index', compact('pangkats'))
-            ->layout('layouts.app');
+            ->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 
     public function openModal()

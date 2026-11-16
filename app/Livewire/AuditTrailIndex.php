@@ -30,6 +30,7 @@ class AuditTrailIndex extends Component
             ->orderBy('created_at', 'desc')
             ->paginate(20);
 
-        return view('livewire.audit-trail-index', compact('logs'))->layout('layouts.app');
+        return view('livewire.audit-trail-index', compact('logs'))
+            ->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 }

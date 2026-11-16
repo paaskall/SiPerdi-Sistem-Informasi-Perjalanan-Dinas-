@@ -6,10 +6,19 @@ use App\Models\PerjalananDinas;
 use App\Models\Kota;
 use App\Models\Coa;
 use App\Models\TarifHari;
+use App\Models\User;
+use App\Models\Divisi;
+use App\Models\Jabatan;
+use App\Models\Golongan;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Livewire\Component;
 
 class FormPengajuan extends Component
 {
+    /* =========================================================
+       PROPERTIES
+       ========================================================= */
     public $provinsi; 
     public $kota_tujuan_id, $tanggal_berangkat, $tanggal_pulang, $jumlah_hari = 0, $maksud_perjalanan;
     public $tempat_berangkat, $alat_angkutan = 'Pesawat', $tingkat_biaya = 'C';
@@ -20,62 +29,126 @@ class FormPengajuan extends Component
     public $profilLengkap = false;
     public $missing = [];
 
+    // Super Admin Properties
+    public $isSuperAdmin = false;
+    public $pegawai_id_pilihan = ''; 
+    public $filterDivisi = '';
+    public $filterJabatan = '';
+    public $searchPegawai = '';
+
+    // Manual Input Properties
+    public $is_pegawai_manual = false;
+    public $nama_pegawai_manual = '';
+    public $nip_pegawai_manual = '';
+    public $golongan_id_manual = '';
+    public $divisi_id_manual = '';
+
+    /* =========================================================
+       LIFECYCLE HOOKS
+       ========================================================= */
     public function mount()
     {
         $user = auth()->user();
+        $this->isSuperAdmin = $user->hasRole('super-admin');
+
+        if ($this->isSuperAdmin) {
+            $this->pegawai_id_pilihan = $user->id;
+        }
+
         $this->profilLengkap = $user->profilLengkap();
         $this->missing = $user->dataProfilKurang();
 
         $editId = request()->query('edit');
 
         if ($editId) {
-            $perjalanan = PerjalananDinas::with(['rincianBiaya', 'kotaTujuan'])->findOrFail($editId);
-
-            if ($perjalanan->pegawai_id !== $user->id || $perjalanan->status !== 'DRAFT') {
-                abort(403, 'Anda tidak memiliki akses untuk mengedit form ini atau form sudah diproses.');
-            }
-
-            $this->no_pembukuan = $perjalanan->no_pembukuan;
-            $this->akun = $perjalanan->akun;
-            $this->no_spd = $perjalanan->no_spd;
-            $this->tempat_berangkat = $perjalanan->tempat_berangkat;
-            $this->provinsi = $perjalanan->kotaTujuan->provinsi ?? null;
-            $this->kota_tujuan_id = $perjalanan->kota_tujuan_id;
-            $this->maksud_perjalanan = $perjalanan->maksud_perjalanan;
-            $this->alat_angkutan = $perjalanan->alat_angkutan;
-            $this->tingkat_biaya = $perjalanan->tingkat_biaya;
-            
-            $this->tanggal_berangkat = $perjalanan->tanggal_berangkat ? $perjalanan->tanggal_berangkat->format('Y-m-d') : null;
-            $this->tanggal_pulang = $perjalanan->tanggal_pulang ? $perjalanan->tanggal_pulang->format('Y-m-d') : null;
-            
-            if ($this->tanggal_berangkat && $this->tanggal_pulang) {
-                $start = \Carbon\Carbon::parse($this->tanggal_berangkat);
-                $end = \Carbon\Carbon::parse($this->tanggal_pulang);
-                $this->jumlah_hari = $start->diffInDays($end) + 1;
-            }
-
-            $this->rincian = $perjalanan->rincianBiaya->map(function ($item) {
-                return [
-                    'coa_id' => $item->coa_id,
-                    'keterangan' => $item->keterangan,
-                    'qty' => $item->qty,
-                    'satuan' => $item->satuan,
-                    'harga_satuan' => $item->harga_satuan,
-                    'nominal' => $item->nominal,
-                ];
-            })->toArray();
-
-            $this->hitungTotal();
-
+            $this->loadEditData($editId);
         } else {
-            $this->tempat_berangkat = 'Makassar';
-
-            $count = PerjalananDinas::whereYear('created_at', date('Y'))->count() + 1;
-            $this->no_pembukuan = 'PB/' . date('Y') . '/' . str_pad($count, 3, '0', STR_PAD_LEFT);
-            $this->akun = '086.01.CO.4825.ABQ.001.051.A.524111';
-            $this->no_spd = (2866 + $count) . '/PLB.1.2.1/SDM.04.1';
-
+            $this->generateAutoNumbers();
             $this->tambahBaris();
+        }
+    }
+
+    /* =========================================================
+       LOAD DATA (EDIT MODE)
+       ========================================================= */
+    private function loadEditData($editId)
+    {
+        $user = auth()->user();
+        $perjalanan = PerjalananDinas::with(['rincianBiaya', 'kotaTujuan'])->findOrFail($editId);
+
+        if ($perjalanan->pegawai_id !== $user->id && !$this->isSuperAdmin) {
+            abort(403, 'Anda tidak memiliki akses untuk mengedit form ini.');
+        }
+        if ($perjalanan->status !== 'DRAFT') {
+            abort(403, 'Form sudah diproses, tidak bisa diedit.');
+        }
+
+        $this->pegawai_id_pilihan = $perjalanan->pegawai_id;
+        $this->no_pembukuan = $perjalanan->no_pembukuan;
+        $this->akun = $perjalanan->akun;
+        $this->no_spd = $perjalanan->no_spd;
+        $this->tempat_berangkat = $perjalanan->tempat_berangkat;
+        $this->provinsi = $perjalanan->kotaTujuan->provinsi ?? null;
+        $this->kota_tujuan_id = $perjalanan->kota_tujuan_id;
+        $this->maksud_perjalanan = $perjalanan->maksud_perjalanan;
+        $this->alat_angkutan = $perjalanan->alat_angkutan;
+        $this->tingkat_biaya = $perjalanan->tingkat_biaya;
+        
+        $this->tanggal_berangkat = $perjalanan->tanggal_berangkat ? $perjalanan->tanggal_berangkat->format('Y-m-d') : null;
+        $this->tanggal_pulang = $perjalanan->tanggal_pulang ? $perjalanan->tanggal_pulang->format('Y-m-d') : null;
+        
+        if ($this->tanggal_berangkat && $this->tanggal_pulang) {
+            $this->jumlah_hari = \Carbon\Carbon::parse($this->tanggal_berangkat)->diffInDays(\Carbon\Carbon::parse($this->tanggal_pulang)) + 1;
+        }
+
+        $this->rincian = $perjalanan->rincianBiaya->map(function ($item) {
+            return [
+                'coa_id' => $item->coa_id,
+                'keterangan' => $item->keterangan,
+                'qty' => $item->qty,
+                'satuan' => $item->satuan,
+                'harga_satuan' => $item->harga_satuan,
+                'nominal' => $item->nominal,
+            ];
+        })->toArray();
+
+        $this->hitungTotal();
+    }
+
+    /* =========================================================
+       AUTO GENERATE NUMBERS
+       ========================================================= */
+    private function generateAutoNumbers()
+    {
+        $this->tempat_berangkat = 'Makassar';
+        $count = PerjalananDinas::whereYear('created_at', date('Y'))->count() + 1;
+        $this->no_pembukuan = 'PB/' . date('Y') . '/' . str_pad($count, 3, '0', STR_PAD_LEFT);
+        $this->akun = '086.01.CO.4825.ABQ.001.051.A.524111';
+        $this->no_spd = (2866 + $count) . '/PLB.1.2.1/SDM.04.1';
+    }
+
+    /* =========================================================
+       WATCHERS (LIVEWIRE HOOKS)
+       ========================================================= */
+    public function updatedFilterDivisi() { $this->pegawai_id_pilihan = ''; }
+    public function updatedFilterJabatan() { $this->pegawai_id_pilihan = ''; }
+    public function updatedSearchPegawai() { $this->pegawai_id_pilihan = ''; }
+
+    public function updatedIsPegawaiManual()
+    {
+        if ($this->is_pegawai_manual) {
+            $this->pegawai_id_pilihan = '';
+        }
+    }
+
+    public function updatedPegawaiIdPilihan()
+    {
+        if ($this->isSuperAdmin && $this->pegawai_id_pilihan) {
+            $pegawai = User::find($this->pegawai_id_pilihan);
+            if ($pegawai) {
+                $this->profilLengkap = $pegawai->profilLengkap();
+                $this->missing = $pegawai->dataProfilKurang();
+            }
         }
     }
 
@@ -84,21 +157,91 @@ class FormPengajuan extends Component
         $this->kota_tujuan_id = null;
     }
 
-    // ✅ FUNGSI BARU: AUTO-FILL TARIF HARIAN SAAT KOTA DIPILIH
     public function updatedKotaTujuanId()
     {
         if (!$this->kota_tujuan_id) return;
+        $this->isiTarifHarian();
+    }
 
-        $user = auth()->user();
-        
-        // Cari tarif berdasarkan kota dan golongan user
+    public function updated($property)
+    {
+        if (in_array($property, ['tanggal_berangkat', 'tanggal_pulang'])) {
+            $this->hitungJumlahHari();
+        }
+
+        if (str_contains($property, 'rincian.') && str_ends_with($property, '.coa_id')) {
+            $this->prosesAutoSync($property);
+        }
+
+        if (str_contains($property, 'rincian')) {
+            $this->hitungTotal();
+        }
+    }
+
+    /* =========================================================
+       CORE LOGIC: AUTO SYNC & TARIF
+       ========================================================= */
+    private function hitungJumlahHari()
+    {
+        if ($this->tanggal_berangkat && $this->tanggal_pulang) {
+            $start = \Carbon\Carbon::parse($this->tanggal_berangkat);
+            $end = \Carbon\Carbon::parse($this->tanggal_pulang);
+            $this->jumlah_hari = $start->diffInDays($end) + 1;
+        } else {
+            $this->jumlah_hari = 0;
+        }
+    }
+
+    private function prosesAutoSync($property)
+    {
+        $parts = explode('.', $property);
+        $index = (int) $parts[1];
+
+        if (empty($this->rincian[$index]['coa_id'])) return;
+
+        $coa = Coa::find($this->rincian[$index]['coa_id']);
+        $namaCoa = $coa ? strtolower($coa->nama) : '';
+
+        // Penginapan
+        if (str_contains($namaCoa, 'penginapan') || str_contains($namaCoa, 'hotel') || str_contains($namaCoa, 'akomodasi')) {
+            $this->rincian[$index]['qty'] = max(1, $this->jumlah_hari - 1);
+            $this->rincian[$index]['satuan'] = 'malam';
+        } 
+        // Uang Harian
+        elseif (str_contains($namaCoa, 'uang harian') || str_contains($namaCoa, 'uang saku') || str_contains($namaCoa, 'harian')) {
+            $this->rincian[$index]['qty'] = $this->jumlah_hari;
+            $this->rincian[$index]['satuan'] = 'OH';
+            
+            if ($this->kota_tujuan_id) {
+                $this->isiTarifHarian($index);
+            }
+        }
+
+        if (empty($this->rincian[$index]['harga_satuan'])) {
+            $this->rincian[$index]['harga_satuan'] = 0;
+        }
+    }
+
+    private function isiTarifHarian($specificIndex = null)
+    {
+        $golonganId = null;
+        if ($this->isSuperAdmin && $this->pegawai_id_pilihan) {
+            $pegawai = User::find($this->pegawai_id_pilihan);
+            $golonganId = $pegawai->golongan_id ?? null;
+        } else {
+            $golonganId = auth()->user()->golongan_id;
+        }
+
+        if (!$golonganId) return;
+
         $tarif = TarifHari::where('kota_id', $this->kota_tujuan_id)
-            ->where('golongan_id', $user->golongan_id)
+            ->where('golongan_id', $golonganId)
             ->first();
 
         if ($tarif) {
-            // Cari baris rincian yang COA-nya mengandung "uang harian" atau "harian"
             foreach ($this->rincian as $index => $item) {
+                if ($specificIndex !== null && $index !== $specificIndex) continue;
+
                 $coa = $item['coa_id'] ? Coa::find($item['coa_id']) : null;
                 $namaCoa = $coa ? strtolower($coa->nama) : '';
                 
@@ -112,59 +255,9 @@ class FormPengajuan extends Component
         }
     }
 
-    public function updated($property)
-    {
-        if (in_array($property, ['tanggal_berangkat', 'tanggal_pulang'])) {
-            if ($this->tanggal_berangkat && $this->tanggal_pulang) {
-                $start = \Carbon\Carbon::parse($this->tanggal_berangkat);
-                $end = \Carbon\Carbon::parse($this->tanggal_pulang);
-                $this->jumlah_hari = $start->diffInDays($end) + 1;
-            } else {
-                $this->jumlah_hari = 0;
-            }
-        }
-
-        if (str_contains($property, 'rincian.') && str_ends_with($property, '.coa_id')) {
-            $parts = explode('.', $property);
-            $index = (int) $parts[1];
-
-            if (!empty($this->rincian[$index]['coa_id'])) {
-                $coa = Coa::find($this->rincian[$index]['coa_id']);
-                $namaCoa = $coa ? strtolower($coa->nama) : '';
-
-                if (str_contains($namaCoa, 'penginapan') || str_contains($namaCoa, 'hotel') || str_contains($namaCoa, 'akomodasi')) {
-                    $qtyPenginapan = max(1, $this->jumlah_hari - 1);
-                    $this->rincian[$index]['qty'] = $qtyPenginapan;
-                    $this->rincian[$index]['satuan'] = 'malam';
-                } 
-                elseif (str_contains($namaCoa, 'uang harian') || str_contains($namaCoa, 'uang saku') || str_contains($namaCoa, 'harian')) {
-                    $qtyHarian = $this->jumlah_hari; // Full sejumlah hari
-                    $this->rincian[$index]['qty'] = $qtyHarian;
-                    $this->rincian[$index]['satuan'] = 'OH';
-
-                    // ✅ AUTO-FILL HARGA SAAT COA HARIAN DIPILIH (JIKA KOTA SUDAH ADA)
-                    if ($this->kota_tujuan_id) {
-                        $tarif = TarifHari::where('kota_id', $this->kota_tujuan_id)
-                            ->where('golongan_id', auth()->user()->golongan_id)
-                            ->first();
-                        
-                        if ($tarif) {
-                            $this->rincian[$index]['harga_satuan'] = (float) $tarif->nominal;
-                        }
-                    }
-                }
-
-                if(empty($this->rincian[$index]['harga_satuan'])){
-                    $this->rincian[$index]['harga_satuan'] = 0;
-                }
-            }
-        }
-
-        if (str_contains($property, 'rincian')) {
-            $this->hitungTotal();
-        }
-    }
-
+    /* =========================================================
+       RINCIAN BIAYA ACTIONS
+       ========================================================= */
     public function tambahBaris()
     {
         $this->rincian[] = [
@@ -188,14 +281,75 @@ class FormPengajuan extends Component
         $this->total_estimasi = collect($this->rincian)->sum('nominal');
     }
 
+    /* =========================================================
+       SAVE ACTION
+       ========================================================= */
     public function simpan()
     {
-        $user = auth()->user();
-        if (! $user->profilLengkap()) {
-            $this->addError('profil', 'Data profil belum lengkap.');
-            return;
+        $pegawai = $this->resolvePegawai();
+        if (!$pegawai) return; // Validasi gagal
+
+        $this->validateForm();
+        
+        // ✅ PERBAIKAN: $perjalanan MENAMPUNG HASIL RETURN DARI savePerjalanan()
+        $perjalanan = $this->savePerjalanan($pegawai); 
+        
+        // ✅ PERBAIKAN: Kirim $perjalanan (objek PerjalananDinas) ke saveRincian
+        $this->saveRincian($perjalanan);
+
+        return redirect()->route('perjalanan.riwayat');
+    }
+
+    private function resolvePegawai()
+    {
+        if ($this->isSuperAdmin && $this->is_pegawai_manual) {
+            return $this->createManualPegawai();
         }
 
+        if ($this->isSuperAdmin && empty($this->pegawai_id_pilihan)) {
+            $this->addError('pegawai_id_pilihan', 'Pilih pegawai terlebih dahulu.');
+            return null;
+        }
+
+        $pegawai = $this->isSuperAdmin ? User::find($this->pegawai_id_pilihan) : auth()->user();
+
+        if (!$pegawai->profilLengkap()) {
+            $this->addError('profil', 'Data profil pegawai tersebut belum lengkap.');
+            return null;
+        }
+
+        return $pegawai;
+    }
+
+    private function createManualPegawai()
+    {
+        $this->validate([
+            'nama_pegawai_manual' => 'required|string|max:255',
+            'golongan_id_manual' => 'required|exists:golongans,id',
+            'divisi_id_manual' => 'required|exists:divisis,id',
+        ]);
+
+        $username = $this->nip_pegawai_manual ?: Str::slug($this->nama_pegawai_manual) . rand(100,999);
+        
+        $pegawai = User::create([
+            'name' => $this->nama_pegawai_manual,
+            'nip' => $this->nip_pegawai_manual,
+            'username' => $username,
+            'email' => $username . '@siperdi.local',
+            'password' => Hash::make('password123'),
+            'golongan_id' => $this->golongan_id_manual,
+            'divisi_id' => $this->divisi_id_manual,
+        ]);
+        
+        $pegawai->assignRole('pegawai');
+        $this->pegawai_id_pilihan = $pegawai->id;
+        $this->profilLengkap = true;
+
+        return $pegawai;
+    }
+
+    private function validateForm()
+    {
         $this->validate([
             'provinsi' => 'required|string',
             'kota_tujuan_id' => 'required|exists:kotas,id',
@@ -209,14 +363,38 @@ class FormPengajuan extends Component
             'rincian.*.qty' => 'required|numeric|min:1',
             'rincian.*.harga_satuan' => 'required|numeric|min:1',
         ]);
+    }
 
-        $perjalanan = PerjalananDinas::create([
-            'nomor_pengajuan' => str_pad(PerjalananDinas::whereYear('created_at', date('Y'))->count() + 1, 3, '0', STR_PAD_LEFT) . '/UMK/' . date('Y'),
-            'no_pembukuan' => $this->no_pembukuan,
-            'akun' => $this->akun,
-            'no_spd' => $this->no_spd,
-            'pegawai_id' => $user->id,
-            'divisi_id' => $user->divisi_id,
+    private function savePerjalanan($pegawai)
+    {
+        $editId = request()->query('edit');
+
+        if ($editId) {
+            $perjalanan = PerjalananDinas::findOrFail($editId);
+            $perjalanan->update($this->getPerjalananData($pegawai));
+        } else {
+            $perjalanan = PerjalananDinas::create(array_merge($this->getPerjalananData($pegawai), [
+                'nomor_pengajuan' => str_pad(PerjalananDinas::whereYear('created_at', date('Y'))->count() + 1, 3, '0', STR_PAD_LEFT) . '/UMK/' . date('Y'),
+                'no_pembukuan' => $this->no_pembukuan,
+                'akun' => $this->akun,
+                'no_spd' => $this->no_spd,
+                'status' => 'DRAFT',
+                'nama_bendahara' => 'Suharna Sudirman, S.Kom',
+                'nip_bendahara' => '19810303 200902 2 006',
+                'nama_ppk' => 'Sudarmi Narwis, SE., MM',
+                'nip_ppk' => '19701030 200501 2 001',
+            ]));
+        }
+
+        // ✅ PERBAIKAN: Kembalikan objek $perjalanan
+        return $perjalanan;
+    }
+
+    private function getPerjalananData($pegawai)
+    {
+        return [
+            'pegawai_id' => $pegawai->id,
+            'divisi_id' => $pegawai->divisi_id,
             'kota_tujuan_id' => $this->kota_tujuan_id,
             'tempat_berangkat' => $this->tempat_berangkat,
             'alat_angkutan' => $this->alat_angkutan,
@@ -226,32 +404,62 @@ class FormPengajuan extends Component
             'jumlah_hari' => $this->jumlah_hari,
             'maksud_perjalanan' => $this->maksud_perjalanan,
             'total_estimasi' => $this->total_estimasi,
-            'status' => 'DRAFT',
-            'nama_bendahara' => 'Suharna Sudirman, S.Kom',
-            'nip_bendahara' => '19810303 200902 2 006',
-            'nama_ppk' => 'Sudarmi Narwis, SE., MM',
-            'nip_ppk' => '19701030 200501 2 001',
-        ]);
+        ];
+    }
+
+    private function saveRincian($perjalanan)
+    {
+        $editId = request()->query('edit');
+
+        if ($editId) {
+            // Hapus rincian lama
+            $perjalanan->rincianBiaya()->delete();
+        }
 
         foreach ($this->rincian as $r) {
             $perjalanan->rincianBiaya()->create($r);
         }
-
-        return redirect()->route('perjalanan.riwayat');
     }
 
+    /* =========================================================
+       RENDER
+       ========================================================= */
     public function render()
     {
         $provinsis = Kota::select('provinsi')->distinct()->orderBy('provinsi')->pluck('provinsi');
-        $kotas = [];
-        if ($this->provinsi) {
-            $kotas = Kota::where('provinsi', $this->provinsi)->orderBy('nama')->get();
+        $kotas = $this->provinsi ? Kota::where('provinsi', $this->provinsi)->orderBy('nama')->get() : [];
+
+        $pegawais = [];
+        $divisis = [];
+        $jabatans = [];
+        $golongans = [];
+        
+        if ($this->isSuperAdmin) {
+            $divisis = Divisi::orderBy('nama')->get();
+            $jabatans = Jabatan::orderBy('nama')->get();
+            $golongans = Golongan::orderBy('nama')->get();
+            
+            $queryPegawai = User::orderBy('name');
+            if ($this->filterDivisi) $queryPegawai->where('divisi_id', $this->filterDivisi);
+            if ($this->filterJabatan) $queryPegawai->where('jabatan_id', $this->filterJabatan);
+            if ($this->searchPegawai) {
+                $queryPegawai->where(function($q) {
+                    $q->where('name', 'like', '%' . $this->searchPegawai . '%')
+                      ->orWhere('nip', 'like', '%' . $this->searchPegawai . '%');
+                });
+            }
+            $pegawais = $queryPegawai->get();
         }
 
         return view('livewire.perjalanan.form-pengajuan', [
             'provinsis' => $provinsis,
             'kotas' => $kotas, 
             'coas' => Coa::where('aktif', true)->orderBy('kode')->get(),
-        ])->layout('layouts.app');
+            'pegawais' => $pegawais,
+            'divisis' => $divisis,
+            'jabatans' => $jabatans,
+            'golongans' => $golongans,
+            'isSuperAdmin' => $this->isSuperAdmin,
+        ])->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 }

@@ -28,7 +28,8 @@ class CoaIndex extends Component
             ->orWhere('nama', 'like', '%'.$this->search.'%')
             ->orderBy('kode')->paginate(10);
 
-        return view('livewire.master-data.coa-index', compact('coas'))->layout('layouts.app');
+    return view('livewire.master-data.coa-index', compact('coas'))->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
+
     }
 
     public function openModal() { $this->resetFields(); $this->isModalOpen = true; }

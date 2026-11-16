@@ -1,19 +1,26 @@
 @php
     $user = Auth::user();
+    $isSuperAdmin = $user->hasRole('super-admin');
 
     $mainLinks = [
-        ['label' => 'Dashboard',          'route' => 'dashboard',                        'role' => null],
-        ['label' => 'Buat UMK',           'route' => 'perjalanan.buat',                  'role' => 'pegawai'],
-        ['label' => 'Riwayat UMK',        'route' => 'perjalanan.riwayat',               'role' => 'pegawai'],
-        ['label' => 'Laporan',       'route' => 'laporan.riwayat',                  'role' => 'pegawai'],
-        ['label' => 'Verifikasi UMK',     'route' => 'perjalanan.verifikasi-umk',        'role' => 'keuangan'],
-        ['label' => 'Verifikasi Laporan', 'route' => 'perjalanan.verifikasi-laporan',    'role' => 'keuangan'],
-        ['label' => 'Audit Trail',        'route' => 'audit.index',                      'role' => 'keuangan'],
-        ['label' => 'Audit Trail',        'route' => 'audit.index',                      'role' => 'pimpinan'],
-        ['label' => 'Manajemen User',     'route' => 'master.users',                     'role' => 'super-admin'],
+        ['label' => 'Dashboard',          'route' => 'dashboard',                        'roles' => []],
+        ['label' => 'Buat UMK',           'route' => 'perjalanan.buat',                  'roles' => ['pegawai', 'super-admin']],
+        ['label' => 'Riwayat UMK',        'route' => 'perjalanan.riwayat',               'roles' => ['pegawai', 'super-admin']],
+        ['label' => 'Laporan',            'route' => 'laporan.riwayat',                  'roles' => ['pegawai', 'super-admin']],
+        ['label' => 'Verifikasi UMK',     'route' => 'perjalanan.verifikasi-umk',        'roles' => ['keuangan', 'super-admin']],
+        ['label' => 'Verifikasi Laporan', 'route' => 'perjalanan.verifikasi-laporan',    'roles' => ['keuangan', 'super-admin']],
+        ['label' => 'Audit Trail',        'route' => 'audit.index',                      'roles' => ['keuangan', 'pimpinan', 'super-admin']],
+        ['label' => 'Manajemen User',     'route' => 'master.users',                     'roles' => ['super-admin']],
     ];
     
-    $mainLinks = array_values(array_filter($mainLinks, fn ($l) => is_null($l['role']) || $user->hasRole($l['role'])));
+    // Filter: tampilkan jika user punya salah satu role di dalam array, atau jika array kosong
+    $mainLinks = array_values(array_filter($mainLinks, function($l) use ($user) {
+        if (empty($l['roles'])) return true;
+        foreach ($l['roles'] as $role) {
+            if ($user->hasRole($role)) return true;
+        }
+        return false;
+    }));
 
     $masterLinks = [
         ['label' => 'Divisi',   'route' => 'master.divisi'],
@@ -23,7 +30,9 @@
         ['label' => 'Kota',     'route' => 'master.kota'],
         ['label' => 'Tarif',    'route' => 'master.tarif'],
     ];
-    $showMaster   = $user->hasRole('keuangan');
+    
+    // Tampilkan Master Data untuk Keuangan DAN Super Admin
+    $showMaster   = $user->hasRole('keuangan') || $isSuperAdmin;
     $masterActive = request()->routeIs('master.*');
 
     $linkBase   = 'inline-flex h-full items-center border-b-2 px-1 text-sm font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2';
@@ -36,18 +45,15 @@
 @endphp
 
 <nav x-data="{ open: false }" class="sticky top-0 z-40 border-b border-slate-200 bg-white">
-    <!-- Menu utama -->
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex h-16 justify-between sm:h-20">
             <div class="flex">
-                <!-- Logo -->
                 <a href="{{ route('dashboard') }}" class="flex shrink-0 items-center gap-3 rounded-md focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 sm:gap-4">
                     <img src="{{ asset('img/lan.png') }}" alt="Logo LAN RI" class="h-9 w-auto object-contain sm:h-11">
                     <span class="hidden h-8 w-px bg-slate-200 sm:block"></span>
                     <span class="text-lg font-extrabold tracking-tight text-slate-900 sm:text-xl">SIPERDI</span>
                 </a>
 
-                <!-- Tautan (desktop) -->
                 <div class="hidden gap-6 lg:ml-10 lg:flex">
                     @foreach ($mainLinks as $l)
                         @php $on = request()->routeIs($l['route']); @endphp
@@ -87,8 +93,6 @@
                     <div x-show="o" x-transition.opacity style="display: none"
                          class="absolute right-0 z-50 mt-2 w-52 rounded-xl border border-slate-200 bg-white py-1.5 shadow-lg">
                         <a href="{{ route('profile.edit') }}" class="block px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50">Profil</a>
-
-                        {{-- ✅ Tombol logout: type="button" + onclick confirmLogout --}}
                         <button type="button" onclick="confirmLogout(event)"
                                 class="block w-full px-4 py-2 text-left text-sm font-medium text-red-700 hover:bg-red-50 transition-colors">
                             Keluar
@@ -140,8 +144,6 @@
 
             <div class="mt-3 space-y-1">
                 <a href="{{ route('profile.edit') }}" class="{{ $mobBase }} {{ request()->routeIs('profile.edit') ? $mobOn : $mobOff }}">Profil</a>
-
-                {{-- ✅ Tombol logout mobile: type="button" + onclick confirmLogout --}}
                 <button type="button" onclick="confirmLogout(event)"
                         class="{{ $mobBase }} {{ $mobOff }} w-full text-left text-red-700">
                     Keluar
@@ -151,24 +153,19 @@
     </div>
 </nav>
 
-{{-- Form logout tersembunyi: satu-satunya yang submit ke /logout --}}
 <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">
     @csrf
 </form>
 
-{{-- SweetAlert: konfirmasi logout --}}
 <script>
 window.confirmLogout = function (event) {
     if (event) event.preventDefault();
-
-    // Fallback kalau SweetAlert belum ke-load
     if (typeof Swal === 'undefined') {
         if (confirm('Yakin ingin logout?')) {
             document.getElementById('logout-form').submit();
         }
         return;
     }
-
     Swal.fire({
         title: 'Keluar Aplikasi?',
         text: 'Anda akan keluar dari sistem. Yakin ingin melanjutkan?',
@@ -182,7 +179,6 @@ window.confirmLogout = function (event) {
         customClass: { popup: 'font-sans rounded-2xl' }
     }).then((result) => {
         if (result.isConfirmed) {
-            // Loading spinner sebentar
             Swal.fire({
                 title: 'Sedang logout...',
                 text: 'Mohon tunggu sebentar.',
@@ -191,7 +187,6 @@ window.confirmLogout = function (event) {
                 showConfirmButton: false,
                 didOpen: () => { Swal.showLoading(); }
             });
-
             document.getElementById('logout-form').submit();
         }
     });

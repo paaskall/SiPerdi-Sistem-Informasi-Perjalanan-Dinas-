@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
             UserFromDataSeeder::class,
             KotaSeeder::class,
             TarifHariSeeder::class,
+            SuperAdminSeeder::class,
         ]);
     }
 }

@@ -19,6 +19,5 @@ class RiwayatLaporan extends Component
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
-        return view('livewire.perjalanan.riwayat-laporan', compact('perjalanans'))->layout('layouts.app');
-    }
+        return view('livewire.perjalanan.riwayat-laporan', compact('perjalanans'))->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');    }
 }

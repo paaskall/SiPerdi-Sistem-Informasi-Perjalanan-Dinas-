@@ -27,7 +27,7 @@ class KotaIndex extends Component
             ->orWhere('provinsi', 'like', '%'.$this->search.'%')
             ->orderBy('nama')->paginate(10);
 
-        return view('livewire.master-data.kota-index', compact('kotas'))->layout('layouts.app');
+        return view('livewire.master-data.kota-index', compact('kotas'))->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 
     public function openModal() { $this->resetFields(); $this->isModalOpen = true; }

@@ -26,19 +26,116 @@
         <div class="mx-auto max-w-4xl">
             <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
+                <!-- ✅ FORM KHUSUS SUPER ADMIN -->
+                @if($isSuperAdmin)
+                <div class="border-b border-blue-100 bg-blue-100/30 p-4 sm:p-6">
+                    <h3 class="flex items-center gap-2.5 text-sm font-bold text-blue-900 mb-3">
+                        <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        Buat UMK Untuk Pegawai (Super Admin)
+                    </h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                        <!-- Filter Divisi -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-800 mb-1">Filter Divisi</label>
+                            <select wire:model.live="filterDivisi" class="block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
+                                <option value="">Semua Divisi</option>
+                                @foreach($divisis as $d)
+                                    <option value="{{ $d->id }}">{{ $d->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        
+                        <!-- Filter Jabatan -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-800 mb-1">Filter Jabatan</label>
+                            <select wire:model.live="filterJabatan" class="block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
+                                <option value="">Semua Jabatan</option>
+                                @foreach($jabatans as $j)
+                                    <option value="{{ $j->id }}">{{ $j->nama }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <!-- Search Bebas -->
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-800 mb-1">Cari Nama / NIP</label>
+                            <input wire:model.live.debounce.300ms="searchPegawai" type="text" placeholder="Ketik nama atau NIP..." class="block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
+                        </div>
+                    </div>
+
+                    <!-- Toggle Manual -->
+                    <div class="mb-3 flex items-center gap-2">
+                        <input type="checkbox" wire:model.live="is_pegawai_manual" id="manual" class="rounded border-slate-300 text-blue-900">
+                        <label for="manual" class="text-sm font-medium text-slate-700 cursor-pointer">Input Manual</label>
+                    </div>
+
+                    @if(!$is_pegawai_manual)
+                        <!-- Pilih Pegawai (dari List) -->
+                        <div wire:key="pegawai-select-{{ $filterDivisi }}-{{ $filterJabatan }}-{{ $searchPegawai }}">
+                            <label class="block text-sm font-semibold text-slate-800 mb-1">Pilih Pegawai</label>
+                            <select wire:model.live="pegawai_id_pilihan" class="block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
+                                <option value="">Pilih Pegawai</option>
+                                @forelse($pegawais as $p)
+                                    <option value="{{ $p->id }}">{{ $p->name }} - {{ $p->nip ?? 'Tanpa NIP' }}</option>
+                                @empty
+                                    <option value="">Tidak ada pegawai yang cocok</option>
+                                @endforelse
+                            </select>
+                            <x-input-error :messages="$errors->get('pegawai_id_pilihan')" class="mt-2" />
+                        </div>
+                    @else
+                        <!-- Input Manual -->
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border border-blue-200 rounded-lg bg-white">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700">Nama Pegawai</label>
+                                <input wire:model="nama_pegawai_manual" type="text" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300" placeholder="Nama lengkap">
+                                <x-input-error :messages="$errors->get('nama_pegawai_manual')" class="mt-1" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700">NIP (Opsional)</label>
+                                <input wire:model="nip_pegawai_manual" type="text" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300" placeholder="Kosongkan jika tidak ada">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700">Golongan</label>
+                                <select wire:model="golongan_id_manual" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
+                                    <option value="">Pilih Golongan</option>
+                                    @foreach($golongans as $g)
+                                        <option value="{{ $g->id }}">{{ $g->nama }}</option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('golongan_id_manual')" class="mt-1" />
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-700">Divisi</label>
+                                <select wire:model="divisi_id_manual" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
+                                    <option value="">Pilih Divisi</option>
+                                    @foreach($divisis as $d)
+                                        <option value="{{ $d->id }}">{{ $d->nama }}</option>
+                                    @endforeach
+                                </select>
+                                <x-input-error :messages="$errors->get('divisi_id_manual')" class="mt-1" />
+                            </div>
+                        </div>
+                    @endif
+                </div>
+                @endif
+
                 <!-- DATA DIRI -->
                 <div class="border-b border-slate-100 bg-blue-50/50 p-4 sm:p-6">
                     <h3 class="flex items-center gap-2.5 text-sm font-bold text-blue-900 mb-4">
                         <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
-                        Data Pemohon (Otomatis)
+                        Data Pemohon
                     </h3>
                     <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-                        <div><span class="text-slate-500">Nama Lengkap</span><p class="font-semibold text-slate-900">{{ $user->name }}</p></div>
-                        <div><span class="text-slate-500">NIP</span><p class="font-semibold text-slate-900">{{ $user->nip ?? '-' }}</p></div>
-                        <div><span class="text-slate-500">Jabatan</span><p class="font-semibold text-slate-900">{{ $user->jabatan->nama ?? '-' }}</p></div>
-                        <div><span class="text-slate-500">Divisi</span><p class="font-semibold text-slate-900">{{ $user->divisi->nama ?? '-' }}</p></div>
-                        <div><span class="text-slate-500">Golongan</span><p class="font-semibold text-slate-900">{{ $user->golongan->nama ?? '-' }}</p></div>
-                        <div><span class="text-slate-500">Pangkat</span><p class="font-semibold text-slate-900">{{ $user->pangkat->nama ?? '-' }} {{ $user->pangkat ? '(' . $user->pangkat->golongan_ruang . ')' : '' }}</p></div>
+                        @php
+                            $pemohon = $isSuperAdmin && $pegawai_id_pilihan ? \App\Models\User::find($pegawai_id_pilihan) : auth()->user();
+                        @endphp
+                        <div><span class="text-slate-500">Nama Lengkap</span><p class="font-semibold text-slate-900">{{ $pemohon->name ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">NIP</span><p class="font-semibold text-slate-900">{{ $pemohon->nip ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Jabatan</span><p class="font-semibold text-slate-900">{{ $pemohon->jabatan->nama ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Divisi</span><p class="font-semibold text-slate-900">{{ $pemohon->divisi->nama ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Golongan</span><p class="font-semibold text-slate-900">{{ $pemohon->golongan->nama ?? '-' }}</p></div>
+                        <div><span class="text-slate-500">Pangkat</span><p class="font-semibold text-slate-900">{{ $pemohon->pangkat->nama ?? '-' }} {{ $pemohon->pangkat ? '(' . $pemohon->pangkat->golongan_ruang . ')' : '' }}</p></div>
                     </div>
                 </div>
 
@@ -52,7 +149,6 @@
                                 Informasi Perjalanan
                             </h3>
 
-                            <!-- Baris 1 -->
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">No. Pembukuan</label>
@@ -68,7 +164,6 @@
                                 </div>
                             </div>
 
-                            <!-- Baris 2 -->
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Tempat Berangkat</label>
@@ -77,7 +172,7 @@
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Provinsi Tujuan</label>
                                     <select wire:model.live="provinsi" class="{{ $inp('provinsi') }} mt-1.5">
-                                        <option value="">-- Pilih Provinsi --</option>
+                                        <option value="">Pilih Provinsi</option>
                                         @foreach($provinsis as $prov)
                                             <option value="{{ $prov }}">{{ $prov }}</option>
                                         @endforeach
@@ -86,7 +181,7 @@
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Kota / Kabupaten</label>
                                     <select wire:model="kota_tujuan_id" class="{{ $inp('kota_tujuan_id') }} mt-1.5" @if(!$provinsi) disabled @endif>
-                                        <option value="">-- Pilih Kota --</option>
+                                        <option value="">Pilih Kota</option>
                                         @foreach($kotas as $k)
                                             <option value="{{ $k->id }}">{{ $k->nama }}</option>
                                         @endforeach
@@ -98,7 +193,6 @@
                                 </div>
                             </div>
 
-                            <!-- Baris 3 -->
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Alat Angkutan</label>
@@ -126,7 +220,6 @@
                                 </div>
                             </div>
 
-                            <!-- Baris 4 -->
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Tanggal Berangkat</label>
@@ -162,9 +255,8 @@
                                         if ($isUangHarian) $borderColor = 'border-amber-300 bg-amber-50/40';
                                         if ($isTaksi) $borderColor = 'border-emerald-300 bg-emerald-50/40';
 
-                                        // LOGIKA PLACEHOLDER DINAMIS
                                         $placeholder = 'Biaya Lainnya';
-                                        if ($index === 0) $placeholder = 'Tiket Pesawat';
+                                        if ($index === 0) $placeholder = 'Tiket Pesawat (Asal - Tujuan)';
                                         if ($index === 1) $placeholder = 'Transport Lokal / Taksi';
                                     @endphp
                                     
@@ -182,12 +274,17 @@
                                         @if($isPenginapan)
                                             <div class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-blue-800">
                                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                                                Baris penginapan - Qty otomatis
+                                                Baris penginapan — Qty otomatis
                                             </div>
                                         @elseif($isUangHarian)
                                             <div class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-amber-800">
                                                 <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-                                                Uang harian - Qty otomatis
+                                                Uang harian — Qty otomatis
+                                            </div>
+                                        @elseif($isTaksi)
+                                            <div class="mb-2 flex items-center gap-1.5 text-xs font-semibold text-emerald-800">
+                                                <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                                                Transport Lokal / Taksi
                                             </div>
                                         @endif
 
@@ -195,7 +292,7 @@
                                             <div class="col-span-12 md:col-span-3 mt-8">
                                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Kategori</label>
                                                 <select wire:model.live="rincian.{{ $index }}.coa_id" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300">
-                                                    <option value="">-- Pilih --</option>
+                                                    <option value="">Pilih</option>
                                                     @foreach($coas as $c)
                                                         <option value="{{ $c->id }}">{{ $c->nama }}</option>
                                                     @endforeach
@@ -245,7 +342,7 @@
                             @unless($profilLengkap)
                                 <div role="alert" class="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800 sm:max-w-xs">
                                     <svg class="mt-0.5 h-4 w-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/></svg>
-                                    <span><strong class="font-semibold">Data belum lengkap.</strong> Lengkapi profil Anda.</span>
+                                    <span><strong class="font-semibold">Data belum lengkap.</strong> Lengkapi profil pegawai.</span>
                                 </div>
                             @endunless
 
@@ -258,7 +355,6 @@
             </div>
         </div>
     </div>
-</div>
 
     <!-- SCRIPT SWEETALERT PROFIL LENGKAP -->
     @if(!$profilLengkap)
@@ -296,5 +392,4 @@
         </script>
     </div>
     @endif
-
 </div>

@@ -36,7 +36,7 @@ class VerifikasiUmkIndex extends Component
             ->orderBy('printed_at', 'asc')
             ->paginate(10);
 
-        return view('livewire.perjalanan.verifikasi-umk-index', compact('umks'))->layout('layouts.app');
+        return view('livewire.perjalanan.verifikasi-umk-index', compact('umks'))->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 
     public function lihat($id)

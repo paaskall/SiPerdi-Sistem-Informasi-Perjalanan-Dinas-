@@ -31,8 +31,8 @@ class DivisiIndex extends Component
             ->orderBy('nama')
             ->paginate(10);
 
-        return view('livewire.master-data.divisi-index', compact('divisis'))
-            ->layout('layouts.app'); // pakai layout Breeze
+    return view('livewire.master-data.divisi-index', compact('divisis'))
+        ->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 
     public function openModal()

@@ -34,7 +34,7 @@ class VerifikasiLaporanIndex extends Component
             ->orderBy('created_at', 'asc')
             ->paginate(10);
 
-        return view('livewire.perjalanan.verifikasi-laporan-index', compact('laporans'))->layout('layouts.app');
+        return view('livewire.perjalanan.verifikasi-laporan-index', compact('laporans'))->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 
     public function lihat($id)

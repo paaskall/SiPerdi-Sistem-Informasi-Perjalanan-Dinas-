@@ -59,7 +59,7 @@ class TarifHariIndex extends Component
             'kotas' => $kotas,
             'provinsis' => $provinsis,
             'golongans' => Golongan::orderBy('nama')->get()
-        ])->layout('layouts.app');
+        ])->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 
     public function openModal() 

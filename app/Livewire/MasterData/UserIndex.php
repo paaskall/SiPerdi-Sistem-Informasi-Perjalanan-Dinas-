@@ -61,7 +61,7 @@ class UserIndex extends Component
             'golongans' => Golongan::orderBy('nama')->get(),
             'pangkats' => Pangkat::orderBy('nama')->get(),
             'roles' => Role::all(),
-        ])->layout('layouts.app');
+        ])->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 
     public function openModal() { $this->resetFields(); $this->isModalOpen = true; }

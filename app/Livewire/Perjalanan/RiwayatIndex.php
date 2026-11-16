@@ -29,8 +29,14 @@ class RiwayatIndex extends Component
     {
         $perjalanan = PerjalananDinas::with(['kotaTujuan', 'rincianBiaya'])->findOrFail($id);
 
-        if ($perjalanan->pegawai_id !== Auth::id() || $perjalanan->status !== 'DRAFT') {
-            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Akses Ditolak', 'text' => 'Anda tidak berhak mengedit form ini atau form sudah diproses.']);
+        // Validasi: Pemilik form ATAU Super Admin yang boleh edit
+        $isSuperAdmin = Auth::user()->hasRole('super-admin');
+        if ($perjalanan->pegawai_id !== Auth::id() && !$isSuperAdmin) {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Akses Ditolak', 'text' => 'Anda tidak berhak mengedit form ini.']);
+            return;
+        }
+        if ($perjalanan->status !== 'DRAFT') {
+            $this->dispatch('swal', ['icon' => 'error', 'title' => 'Akses Ditolak', 'text' => 'Form sudah diproses, tidak bisa diedit.']);
             return;
         }
 
@@ -155,10 +161,19 @@ class RiwayatIndex extends Component
 
     public function render()
     {
-        $riwayats = PerjalananDinas::with(['kotaTujuan', 'laporan'])
-            ->where('pegawai_id', Auth::id())
-            ->latest()
-            ->paginate(10);
+        $user = Auth::user();
+        $isSuperAdmin = $user->hasRole('super-admin');
+
+        // ✅ QUERY UNTUK MENAMPILKAN SEMUA UMK JIKA SUPER ADMIN
+        $query = PerjalananDinas::with(['kotaTujuan', 'laporan', 'pegawai']);
+
+        if (!$isSuperAdmin) {
+            // Jika BUKAN Super Admin, tampilkan hanya milik sendiri
+            $query->where('pegawai_id', $user->id);
+        }
+        // Jika Super Admin, JANGAN difilter (tampilkan semua data)
+
+        $riwayats = $query->latest()->paginate(10);
 
         // Data untuk form modal
         $provinsis = Kota::select('provinsi')->distinct()->orderBy('provinsi')->pluck('provinsi');
@@ -173,6 +188,7 @@ class RiwayatIndex extends Component
             'provinsis' => $provinsis,
             'kotas' => $kotas,
             'coas' => $coas,
-        ])->layout('layouts.app');
+            'isSuperAdmin' => $isSuperAdmin, // Kirim status ke view
+        ])->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 }
