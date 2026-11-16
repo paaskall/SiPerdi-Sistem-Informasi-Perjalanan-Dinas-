@@ -153,7 +153,7 @@
                         <div>
                             <label class="block text-sm font-semibold text-slate-800">Role</label>
                             <select wire:model="role" class="mt-1.5 block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
-                                <option value="">-- Pilih Role --</option>
+                                <option value="">Pilih Role</option>
                                 @foreach($roles as $r)
                                     <option value="{{ $r->name }}">{{ $r->name }}</option>
                                 @endforeach
@@ -162,7 +162,7 @@
                         <div>
                             <label class="block text-sm font-semibold text-slate-800">Divisi</label>
                             <select wire:model="divisi_id" class="mt-1.5 block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
-                                <option value="">-- Pilih Divisi --</option>
+                                <option value="">Pilih Divisi</option>
                                 @foreach($divisis as $d)
                                     <option value="{{ $d->id }}">{{ $d->nama }}</option>
                                 @endforeach
@@ -171,7 +171,7 @@
                         <div>
                             <label class="block text-sm font-semibold text-slate-800">Jabatan</label>
                             <select wire:model="jabatan_id" class="mt-1.5 block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
-                                <option value="">-- Pilih Jabatan --</option>
+                                <option value="">Pilih Jabatan</option>
                                 @foreach($jabatans as $j)
                                     <option value="{{ $j->id }}">{{ $j->nama }}</option>
                                 @endforeach
@@ -180,7 +180,7 @@
                         <div>
                             <label class="block text-sm font-semibold text-slate-800">Golongan</label>
                             <select wire:model="golongan_id" class="mt-1.5 block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
-                                <option value="">-- Pilih Golongan --</option>
+                                <option value="">Pilih Golongan</option>
                                 @foreach($golongans as $g)
                                     <option value="{{ $g->id }}">{{ $g->nama }}</option>
                                 @endforeach
@@ -189,7 +189,7 @@
                         <div>
                             <label class="block text-sm font-semibold text-slate-800">Pangkat</label>
                             <select wire:model="pangkat_id" class="mt-1.5 block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
-                                <option value="">-- Pilih Pangkat --</option>
+                                <option value="">Pilih Pangkat</option>
                                 @foreach($pangkats as $p)
                                     <option value="{{ $p->id }}">{{ $p->nama }}</option>
                                 @endforeach

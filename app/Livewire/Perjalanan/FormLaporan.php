@@ -88,5 +88,5 @@ class FormLaporan extends Component
 
     public function render()
     {
-        return view('livewire.perjalanan.detail-laporan')->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');    }
+        return view('livewire.perjalanan.form-laporan')->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');    }
 }

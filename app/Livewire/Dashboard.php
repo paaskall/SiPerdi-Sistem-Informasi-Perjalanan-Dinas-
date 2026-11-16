@@ -12,7 +12,10 @@ class Dashboard extends Component
     {
         $user = Auth::user();
         $isSuperAdmin = $user->hasRole('super-admin');
-        $firstName = explode(' ', trim($user->name))[0];
+        
+        // ✅ PERBAIKAN: Buang gelar akademik & ambil nama depan yang valid
+        $firstName = $this->extractNamaDepan($user->name);
+        
         $roles = $user->getRoleNames();
 
         // ==========================================
@@ -72,5 +75,34 @@ class Dashboard extends Component
         return view('livewire.dashboard', compact(
             'firstName', 'roles', 'actions', 'totalUmk', 'belumLapor', 'sudahLapor', 'steps', 'isSuperAdmin'
         ))->layout($isSuperAdmin ? 'layouts.super-admin' : 'layouts.app');
+    }
+
+    /**
+     * Ekstrak nama depan, buang gelar akademik.
+     * Contoh:
+     *   "Dr. Andi Taufik, M.Si" -> "Andi"
+     *   "Muhammad Taufik, SE" -> "Muhammad"
+     *   "Taufik" -> "Taufik"
+     */
+    private function extractNamaDepan(string $namaLengkap): string
+    {
+        // 1. Hapus gelar di belakang koma (contoh: ", M.Si", ", SE")
+        $namaTanpaGelarBelakang = trim(explode(',', $namaLengkap)[0]);
+        
+        // 2. Pecah jadi array kata
+        $kataArray = explode(' ', $namaTanpaGelarBelakang);
+        
+        // 3. Daftar gelar akademik yang harus dibuang dari depan
+        $gelarDepan = ['Dr.', 'dr.', 'Drs.', 'Dra.', 'Prof.', 'Ir.', 'H.', 'Hj.', 'drg.', 'drh.'];
+        
+        // 4. Loop, buang gelar depan sampai ketemu nama asli
+        foreach ($kataArray as $kata) {
+            if (!in_array($kata, $gelarDepan)) {
+                return $kata; // Kembalikan kata pertama yang bukan gelar
+            }
+        }
+        
+        // 5. Fallback: kalau semua kata ternyata gelar, kembalikan kata pertama
+        return $kataArray[0] ?? $namaLengkap;
     }
 }
