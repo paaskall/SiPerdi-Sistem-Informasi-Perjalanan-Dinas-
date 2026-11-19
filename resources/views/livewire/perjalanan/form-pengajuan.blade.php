@@ -127,9 +127,7 @@
                         Data Pemohon
                     </h3>
                     <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-                        @php
-                            $pemohon = $isSuperAdmin && $pegawai_id_pilihan ? \App\Models\User::find($pegawai_id_pilihan) : auth()->user();
-                        @endphp
+                        {{-- Data Pemohon diambil dari variabel $pemohon yang dikirim dari render() --}}
                         <div><span class="text-slate-500">Nama Lengkap</span><p class="font-semibold text-slate-900">{{ $pemohon->name ?? '-' }}</p></div>
                         <div><span class="text-slate-500">NIP</span><p class="font-semibold text-slate-900">{{ $pemohon->nip ?? '-' }}</p></div>
                         <div><span class="text-slate-500">Jabatan</span><p class="font-semibold text-slate-900">{{ $pemohon->jabatan->nama ?? '-' }}</p></div>
@@ -150,17 +148,29 @@
                             </h3>
 
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
+                                {{-- No. Pembukuan tetap readonly --}}
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">No. Pembukuan</label>
                                     <input wire:model="no_pembukuan" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
                                 </div>
+
+                                {{-- AKUN: dropdown dari tabel akuns --}}
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Akun</label>
-                                    <input wire:model="akun" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
+                                    <select wire:model="akun" class="{{ $inp('akun') }} mt-1.5">
+                                        <option value="">Pilih Akun</option>
+                                        @foreach($akuns as $a)
+                                            <option value="{{ $a->kode }}">{{ $a->kode }}</option>
+                                        @endforeach
+                                    </select>
+                                    <x-input-error :messages="$errors->get('akun')" class="mt-1" />
                                 </div>
+
+                                {{-- KODE SPD: input teks bebas --}}
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Kode SPD</label>
-                                    <input wire:model="no_spd" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
+                                    <input wire:model="no_spd" type="text" placeholder="Contoh: 2867/PLB.1.2.1/SDM.04.1" class="{{ $inp('no_spd') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('no_spd')" class="mt-1" />
                                 </div>
                             </div>
 

@@ -4,7 +4,7 @@
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <title>SIPERDI - Sistem Informasi Perjalanan Dinas</title>
-        <meta name="description" content="Kelola pengajuan, persetujuan, dan pelaporan perjalanan dinas LAN RI secara digital.">
+        <meta name="description" content="Kelola Uang Muka Kerja (UMK) dan laporan perjalanan dinas LAN RI secara digital.">
         <link rel="icon" type="image/png" sizes="32x32" href="{{ asset('img/logo-lanri.png') }}">
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
@@ -38,7 +38,7 @@
                         </a>
                     @else
                         <a href="{{ route('login') }}" class="inline-flex items-center rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-800 transition-colors hover:border-blue-900 hover:text-blue-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-900 focus-visible:ring-offset-2 sm:px-5 sm:py-2.5">
-                            Login Pegawai
+                            Masuk
                         </a>
                     @endauth
                 @endif
@@ -57,10 +57,10 @@
                     <div class="mx-auto max-w-2xl text-center lg:mx-0 lg:text-left">
                         <p class="text-xs font-semibold uppercase tracking-widest text-blue-200 sm:text-sm">Lembaga Administrasi Negara RI</p>
                         <h1 class="mt-4 text-3xl font-extrabold leading-tight tracking-tight text-white sm:text-4xl lg:text-5xl">
-                            Kelola perjalanan dinas dalam satu sistem
+                            Kelola UMK dan laporan perjalanan dinas dalam satu sistem
                         </h1>
                         <p class="mt-5 text-base leading-relaxed text-blue-100 sm:text-lg">
-                            Ajukan, setujui, dan laporkan perjalanan dinas secara digital. Prosesnya lebih cepat, transparan, dan tanpa kertas.
+                            Isi Uang Muka Kerja (UMK), cetak dokumennya, lalu laporkan hasil perjalanan dinas Anda secara digital. Prosesnya lebih tertata, transparan, dan terdokumentasi.
                         </p>
                         <div class="mt-8 flex flex-col gap-3 sm:flex-row sm:justify-center lg:justify-start">
                             <a href="{{ route('login') }}" class="inline-flex items-center justify-center rounded-lg bg-white px-7 py-3 text-base font-semibold text-blue-900 transition-colors hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-950">
@@ -79,7 +79,7 @@
                 <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                     <div class="mx-auto max-w-2xl text-center">
                         <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Fitur utama</h2>
-                        <p class="mt-3 text-base text-slate-600 sm:text-lg">Dirancang untuk memudahkan administrasi perjalanan dinas Anda.</p>
+                        <p class="mt-3 text-base text-slate-600 sm:text-lg">Dirancang untuk memudahkan administrasi UMK dan laporan perjalanan dinas Anda.</p>
                     </div>
 
                     <div class="mt-12 grid grid-cols-1 gap-px overflow-hidden rounded-2xl border border-slate-200 bg-slate-200 md:grid-cols-3">
@@ -88,8 +88,8 @@
                             <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-900">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
                             </div>
-                            <h3 class="mt-5 text-lg font-bold text-slate-900">Pengajuan digital</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Buat pengajuan perjalanan dinas dengan rincian estimasi biaya yang terstruktur, tanpa kertas fisik.</p>
+                            <h3 class="mt-5 text-lg font-bold text-slate-900">Form UMK digital</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Isi data perjalanan dan estimasi biaya dalam satu form. Data diri, nomor pembukuan, akun, dan kode SPD terisi dan tertata otomatis.</p>
                         </div>
 
                         <!-- Fitur 2 -->
@@ -97,8 +97,8 @@
                             <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-900">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
                             </div>
-                            <h3 class="mt-5 text-lg font-bold text-slate-900">Persetujuan berjenjang</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Alur persetujuan dari Keuangan hingga Pimpinan, dilengkapi notifikasi di setiap tahap.</p>
+                            <h3 class="mt-5 text-lg font-bold text-slate-900">Verifikasi Keuangan</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Bagian Keuangan memverifikasi UMK dan laporan perjalanan dinas, dengan jejak audit yang mencatat setiap proses.</p>
                         </div>
 
                         <!-- Fitur 3 -->
@@ -106,8 +106,8 @@
                             <div class="flex h-11 w-11 items-center justify-center rounded-lg bg-blue-50 text-blue-900">
                                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.75" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path></svg>
                             </div>
-                            <h3 class="mt-5 text-lg font-bold text-slate-900">SPPD dalam format PDF</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Cetak Surat Perintah Perjalanan Dinas otomatis, lengkap dengan tanda tangan digital pimpinan.</p>
+                            <h3 class="mt-5 text-lg font-bold text-slate-900">Dokumen siap cetak</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Cetak UMK, rincian, kwitansi, SPD, DPR, dan amplop dalam format PDF, atau unduh dalam bentuk Excel.</p>
                         </div>
                     </div>
                 </div>
@@ -118,29 +118,29 @@
                 <div class="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                     <div class="mx-auto max-w-2xl text-center">
                         <h2 class="text-2xl font-extrabold tracking-tight text-slate-900 sm:text-3xl">Alur kerja</h2>
-                        <p class="mt-3 text-base text-slate-600 sm:text-lg">Dari pengajuan sampai surat tugas terbit, dalam empat langkah.</p>
+                        <p class="mt-3 text-base text-slate-600 sm:text-lg">Dari pengisian UMK sampai laporan tersimpan, dalam empat langkah.</p>
                     </div>
 
                     <ol class="mt-12 grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4 lg:gap-6">
                         <li class="border-t-2 border-blue-900 pt-5">
                             <span class="text-sm font-bold text-blue-900">1</span>
-                            <h3 class="mt-1 text-base font-bold text-slate-900">Buat pengajuan</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Pegawai mengisi tujuan, jadwal, dan estimasi biaya perjalanan.</p>
+                            <h3 class="mt-1 text-base font-bold text-slate-900">Isi Form UMK</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Pegawai melengkapi data perjalanan dan estimasi biaya.</p>
                         </li>
                         <li class="border-t-2 border-blue-900 pt-5">
                             <span class="text-sm font-bold text-blue-900">2</span>
-                            <h3 class="mt-1 text-base font-bold text-slate-900">Verifikasi Keuangan</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Bagian Keuangan memeriksa kelengkapan dan kewajaran anggaran.</p>
+                            <h3 class="mt-1 text-base font-bold text-slate-900">Cetak &amp; Serahkan</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Cetak PDF UMK, lalu serahkan ke Keuangan untuk diverifikasi dan diproses.</p>
                         </li>
                         <li class="border-t-2 border-blue-900 pt-5">
                             <span class="text-sm font-bold text-blue-900">3</span>
-                            <h3 class="mt-1 text-base font-bold text-slate-900">Persetujuan Pimpinan</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Pimpinan menyetujui pengajuan dan membubuhkan tanda tangan digital.</p>
+                            <h3 class="mt-1 text-base font-bold text-slate-900">Laporkan Hasil</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Setelah perjalanan, pegawai mengisi laporan hasil dan mengunggah bukti.</p>
                         </li>
                         <li class="border-t-2 border-blue-900 pt-5">
                             <span class="text-sm font-bold text-blue-900">4</span>
-                            <h3 class="mt-1 text-base font-bold text-slate-900">Unduh SPPD</h3>
-                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Surat Perintah Perjalanan Dinas siap diunduh dalam format PDF.</p>
+                            <h3 class="mt-1 text-base font-bold text-slate-900">Selesai</h3>
+                            <p class="mt-2 text-sm leading-relaxed text-slate-600">Laporan tersimpan dan siap diarsipkan oleh Keuangan.</p>
                         </li>
                     </ol>
                 </div>
@@ -150,8 +150,8 @@
             <section class="bg-blue-900">
                 <div class="mx-auto flex max-w-6xl flex-col items-center gap-6 px-4 py-12 text-center sm:px-6 md:flex-row md:justify-between md:text-left lg:px-8">
                     <div>
-                        <h2 class="text-xl font-bold text-white sm:text-2xl">Siap mengajukan perjalanan dinas?</h2>
-                        <p class="mt-1 text-sm text-blue-100 sm:text-base">Masuk dengan akun pegawai Anda untuk memulai.</p>
+                        <h2 class="text-xl font-bold text-white sm:text-2xl">Siap mengurus UMK perjalanan dinas?</h2>
+                        <p class="mt-1 text-sm text-blue-100 sm:text-base">Masuk dengan akun Anda untuk memulai.</p>
                     </div>
                     <a href="{{ route('login') }}" class="inline-flex w-full items-center justify-center rounded-lg bg-white px-7 py-3 text-base font-semibold text-blue-900 transition-colors hover:bg-blue-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-blue-900 sm:w-auto">
                         Masuk ke SIPERDI

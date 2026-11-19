@@ -7,6 +7,7 @@ use App\Livewire\MasterData\DivisiIndex;
 use App\Livewire\MasterData\GolonganIndex;
 use App\Livewire\MasterData\PangkatIndex;
 use App\Livewire\MasterData\CoaIndex;
+use App\Livewire\MasterData\AkunIndex;
 use App\Livewire\MasterData\KotaIndex;
 use App\Livewire\MasterData\TarifHariIndex;
 use App\Livewire\MasterData\UserIndex;
@@ -52,12 +53,15 @@ Route::middleware('auth')->group(function () {
         ]);
     })->name('api.profile.nip');
 
-    // Master Data (Keuangan & Super Admin)
+    // =========================================================
+    // MASTER DATA — KEUANGAN & SUPER ADMIN
+    // =========================================================
     Route::middleware(RoleMiddleware::class . ':keuangan|super-admin')->group(function () {
         Route::get('/master/divisi', DivisiIndex::class)->name('master.divisi');
         Route::get('/master/golongan', GolonganIndex::class)->name('master.golongan');
         Route::get('/master/pangkat', PangkatIndex::class)->name('master.pangkat');
         Route::get('/master/coa', CoaIndex::class)->name('master.coa');
+        Route::get('/master/akun', AkunIndex::class)->name('master.akun');
         Route::get('/master/kota', KotaIndex::class)->name('master.kota');
         Route::get('/master/tarif', TarifHariIndex::class)->name('master.tarif');
     });

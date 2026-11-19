@@ -52,9 +52,18 @@ class User extends Authenticatable
 
     /**
      * Cek apakah profil user sudah lengkap untuk pembuatan UMK.
+     *
+     * - Super Admin: Cukup Nama & Golongan (karena sering input manual).
+     * - Role lain: Wajib Nama, NIP, Pangkat, Golongan, Jabatan, Divisi.
      */
     public function profilLengkap(): bool
     {
+        // Super Admin cukup Nama & Golongan
+        if ($this->hasRole('super-admin')) {
+            return !empty($this->name) && !empty($this->golongan_id);
+        }
+
+        // Role lain wajib lengkap
         return !empty($this->nip) 
             && !empty($this->pangkat_id) 
             && !empty($this->golongan_id) 
@@ -68,11 +77,21 @@ class User extends Authenticatable
     public function dataProfilKurang(): array
     {
         $kurang = [];
+
+        // Super Admin: cukup Nama & Golongan
+        if ($this->hasRole('super-admin')) {
+            if (empty($this->name)) $kurang[] = 'Nama';
+            if (empty($this->golongan_id)) $kurang[] = 'Golongan';
+            return $kurang;
+        }
+
+        // Role lain: wajib lengkap
         if (empty($this->nip)) $kurang[] = 'NIP';
         if (empty($this->pangkat_id)) $kurang[] = 'Pangkat';
         if (empty($this->golongan_id)) $kurang[] = 'Golongan';
         if (empty($this->jabatan_id)) $kurang[] = 'Jabatan';
         if (empty($this->divisi_id)) $kurang[] = 'Divisi';
+        
         return $kurang;
     }
 

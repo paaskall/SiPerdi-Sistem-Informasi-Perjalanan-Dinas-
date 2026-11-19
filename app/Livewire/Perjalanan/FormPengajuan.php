@@ -5,6 +5,7 @@ namespace App\Livewire\Perjalanan;
 use App\Models\PerjalananDinas;
 use App\Models\Kota;
 use App\Models\Coa;
+use App\Models\Akun;
 use App\Models\TarifHari;
 use App\Models\User;
 use App\Models\Divisi;
@@ -123,7 +124,11 @@ class FormPengajuan extends Component
         $this->tempat_berangkat = 'Makassar';
         $count = PerjalananDinas::whereYear('created_at', date('Y'))->count() + 1;
         $this->no_pembukuan = 'PB/' . date('Y') . '/' . str_pad($count, 3, '0', STR_PAD_LEFT);
-        $this->akun = '086.01.CO.4825.ABQ.001.051.A.524111';
+
+        // Default akun: ambil akun aktif pertama dari tabel akuns
+        $this->akun = Akun::where('aktif', true)->orderBy('kode')->value('kode')
+            ?? '086.01.CO.4825.ABQ.001.051.A';
+
         $this->no_spd = (2866 + $count) . '/PLB.1.2.1/SDM.04.1';
     }
 
@@ -286,66 +291,34 @@ class FormPengajuan extends Component
        ========================================================= */
     public function simpan()
     {
-        $pegawai = $this->resolvePegawai();
-        if (!$pegawai) return; // Validasi gagal
+        // 1. Validasi Pegawai
+        if ($this->isSuperAdmin && !$this->is_pegawai_manual && empty($this->pegawai_id_pilihan)) {
+            $this->addError('pegawai_id_pilihan', 'Pilih pegawai terlebih dahulu.');
+            return;
+        }
 
+        // 2. Validasi Form (rincian, tanggal, dll)
         $this->validateForm();
-        
-        // ✅ PERBAIKAN: $perjalanan MENAMPUNG HASIL RETURN DARI savePerjalanan()
-        $perjalanan = $this->savePerjalanan($pegawai); 
-        
-        // ✅ PERBAIKAN: Kirim $perjalanan (objek PerjalananDinas) ke saveRincian
+
+        // 3. Tentukan Pegawai
+        if ($this->isSuperAdmin && $this->is_pegawai_manual) {
+            $pegawai = $this->createManualPegawai();
+            if (!$pegawai) return; // Gagal buat pegawai (duplikat NIP, dll)
+        } else {
+            $pegawai = $this->isSuperAdmin ? User::find($this->pegawai_id_pilihan) : auth()->user();
+            
+            // Cek profil lengkap (khusus non-manual)
+            if (!$pegawai->profilLengkap()) {
+                $this->addError('profil', 'Data profil pegawai tersebut belum lengkap.');
+                return;
+            }
+        }
+
+        // 4. Simpan Perjalanan & Rincian
+        $perjalanan = $this->savePerjalanan($pegawai);
         $this->saveRincian($perjalanan);
 
         return redirect()->route('perjalanan.riwayat');
-    }
-
-    private function resolvePegawai()
-    {
-        if ($this->isSuperAdmin && $this->is_pegawai_manual) {
-            return $this->createManualPegawai();
-        }
-
-        if ($this->isSuperAdmin && empty($this->pegawai_id_pilihan)) {
-            $this->addError('pegawai_id_pilihan', 'Pilih pegawai terlebih dahulu.');
-            return null;
-        }
-
-        $pegawai = $this->isSuperAdmin ? User::find($this->pegawai_id_pilihan) : auth()->user();
-
-        if (!$pegawai->profilLengkap()) {
-            $this->addError('profil', 'Data profil pegawai tersebut belum lengkap.');
-            return null;
-        }
-
-        return $pegawai;
-    }
-
-    private function createManualPegawai()
-    {
-        $this->validate([
-            'nama_pegawai_manual' => 'required|string|max:255',
-            'golongan_id_manual' => 'required|exists:golongans,id',
-            'divisi_id_manual' => 'required|exists:divisis,id',
-        ]);
-
-        $username = $this->nip_pegawai_manual ?: Str::slug($this->nama_pegawai_manual) . rand(100,999);
-        
-        $pegawai = User::create([
-            'name' => $this->nama_pegawai_manual,
-            'nip' => $this->nip_pegawai_manual,
-            'username' => $username,
-            'email' => $username . '@siperdi.local',
-            'password' => Hash::make('password123'),
-            'golongan_id' => $this->golongan_id_manual,
-            'divisi_id' => $this->divisi_id_manual,
-        ]);
-        
-        $pegawai->assignRole('pegawai');
-        $this->pegawai_id_pilihan = $pegawai->id;
-        $this->profilLengkap = true;
-
-        return $pegawai;
     }
 
     private function validateForm()
@@ -359,10 +332,61 @@ class FormPengajuan extends Component
             'tempat_berangkat' => 'required|string',
             'alat_angkutan' => 'required|string',
             'tingkat_biaya' => 'required|in:A,B,C,D',
+            'akun' => 'required|string|exists:akuns,kode',
+            'no_spd' => 'required|string|max:100',
             'rincian.*.coa_id' => 'required|exists:coas,id',
             'rincian.*.qty' => 'required|numeric|min:1',
             'rincian.*.harga_satuan' => 'required|numeric|min:1',
         ]);
+    }
+
+    private function createManualPegawai()
+    {
+        $this->validate([
+            'nama_pegawai_manual' => 'required|string|max:255',
+            'golongan_id_manual' => 'required|exists:golongans,id',
+            'divisi_id_manual' => 'nullable|exists:divisis,id',
+            'nip_pegawai_manual' => 'nullable|string|max:30|unique:users,nip',
+        ], [
+            'nama_pegawai_manual.required' => 'Nama pegawai wajib diisi.',
+            'golongan_id_manual.required' => 'Golongan wajib dipilih.',
+            'nip_pegawai_manual.unique' => 'NIP ini sudah terdaftar di sistem.',
+        ]);
+
+        $username = $this->nip_pegawai_manual ?: Str::slug($this->nama_pegawai_manual) . rand(100,999);
+        
+        // Cek duplikat username
+        if (User::where('username', $username)->exists()) {
+            $username .= rand(100,999);
+        }
+
+        try {
+            $pegawai = User::create([
+                'name' => $this->nama_pegawai_manual,
+                'nip' => $this->nip_pegawai_manual ?: null,
+                'username' => $username,
+                'email' => $username . '@siperdi.local',
+                'password' => Hash::make('password123'),
+                'golongan_id' => $this->golongan_id_manual,
+                'divisi_id' => $this->divisi_id_manual ?: null,
+            ]);
+            
+            $pegawai->assignRole('pegawai');
+            
+            // Paksa profil lengkap = true agar UMK bisa disimpan
+            $this->pegawai_id_pilihan = $pegawai->id;
+            $this->profilLengkap = true;
+
+            return $pegawai;
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Tangkap error database
+            $this->dispatch('swal', [
+                'icon' => 'error',
+                'title' => 'Gagal Membuat Pegawai',
+                'text' => 'Terjadi kesalahan database: ' . $e->getMessage(),
+            ]);
+            return null;
+        }
     }
 
     private function savePerjalanan($pegawai)
@@ -386,7 +410,6 @@ class FormPengajuan extends Component
             ]));
         }
 
-        // ✅ PERBAIKAN: Kembalikan objek $perjalanan
         return $perjalanan;
     }
 
@@ -412,7 +435,6 @@ class FormPengajuan extends Component
         $editId = request()->query('edit');
 
         if ($editId) {
-            // Hapus rincian lama
             $perjalanan->rincianBiaya()->delete();
         }
 
@@ -451,15 +473,38 @@ class FormPengajuan extends Component
             $pegawais = $queryPegawai->get();
         }
 
+        // ✅ Tentukan Pemohon untuk Data Diri (manual atau list)
+        if ($this->isSuperAdmin) {
+            if ($this->is_pegawai_manual && $this->nama_pegawai_manual) {
+                // Input manual: buat objek User sementara
+                $pemohon = new User([
+                    'name' => $this->nama_pegawai_manual,
+                    'nip' => $this->nip_pegawai_manual,
+                    'golongan_id' => $this->golongan_id_manual,
+                    'divisi_id' => $this->divisi_id_manual,
+                ]);
+                $pemohon->setRelation('golongan', Golongan::find($this->golongan_id_manual));
+                $pemohon->setRelation('divisi', Divisi::find($this->divisi_id_manual));
+            } elseif ($this->pegawai_id_pilihan) {
+                $pemohon = User::with(['golongan', 'divisi', 'jabatan', 'pangkat'])->find($this->pegawai_id_pilihan);
+            } else {
+                $pemohon = auth()->user();
+            }
+        } else {
+            $pemohon = auth()->user();
+        }
+
         return view('livewire.perjalanan.form-pengajuan', [
             'provinsis' => $provinsis,
             'kotas' => $kotas, 
             'coas' => Coa::where('aktif', true)->orderBy('kode')->get(),
+            'akuns' => Akun::where('aktif', true)->orderBy('kode')->get(),
             'pegawais' => $pegawais,
             'divisis' => $divisis,
             'jabatans' => $jabatans,
             'golongans' => $golongans,
             'isSuperAdmin' => $this->isSuperAdmin,
+            'pemohon' => $pemohon,
         ])->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
     }
 }

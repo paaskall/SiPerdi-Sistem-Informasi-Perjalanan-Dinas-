@@ -80,20 +80,26 @@ class RiwayatIndex extends Component
 
     public function nextEditStep()
     {
-        $this->validate([
-            'editProvinsi' => 'required',
-            'editKotaTujuanId' => 'required',
-            'editTanggalBerangkat' => 'required|date',
-            'editTanggalPulang' => 'required|date|after_or_equal:editTanggalBerangkat',
-            'editMaksud' => 'required|string',
-        ]);
-
-        $this->editStep = 2;
+        if ($this->editStep === 1) {
+            $this->validate([
+                'editProvinsi' => 'required',
+                'editKotaTujuanId' => 'required',
+                'editTanggalBerangkat' => 'required|date',
+                'editTanggalPulang' => 'required|date|after_or_equal:editTanggalBerangkat',
+                'editMaksud' => 'required|string',
+            ]);
+            $this->editStep = 2;
+        } elseif ($this->editStep === 2) {
+            // Validasi rincian sebelum ke step 3 (opsional, bisa disesuaikan)
+            $this->editStep = 3;
+        }
     }
 
     public function prevEditStep()
     {
-        $this->editStep = 1;
+        if ($this->editStep > 1) {
+            $this->editStep--;
+        }
     }
 
     // Fungsi untuk update qty/harga secara live di modal
@@ -156,7 +162,9 @@ class RiwayatIndex extends Component
         }
 
         $this->closeEditModal();
-        $this->dispatch('swal', ['icon' => 'success', 'title' => 'Berhasil!', 'text' => 'Data UMK berhasil diperbarui.']);
+        
+        // ✅ MENGGUNAKAN EVENT BARU UNTUK TOAST SUCCESS
+        $this->dispatch('swal:success', ['message' => 'Data UMK berhasil diperbarui!']);
     }
 
     public function render()

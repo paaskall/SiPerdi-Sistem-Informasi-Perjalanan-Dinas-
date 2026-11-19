@@ -33,7 +33,7 @@
             transform: translateX(0);
         }
 
-        /* OVERLAY (Gelap di belakang sidebar saat dibuka di HP) */
+        /* OVERLAY */
         .sidebar-overlay {
             position: fixed;
             inset: 0;
@@ -46,7 +46,7 @@
             display: block;
         }
 
-        /* LAPTOP: Sidebar selalu muncul */
+        /* LAPTOP */
         @media (min-width: 1024px) {
             .sidebar {
                 position: sticky;
@@ -67,7 +67,6 @@
             overflow-x: hidden;
         }
 
-        /* Scrollbar tipis */
         .sidebar-nav::-webkit-scrollbar {
             width: 4px;
         }
@@ -93,7 +92,6 @@
                     <img src="{{ asset('img/lan.png') }}" alt="Logo" class="h-8 w-auto brightness-0 invert">
                     <span class="text-lg font-extrabold tracking-tight text-white">SIPERDI</span>
                 </a>
-                <!-- Tombol X (Hanya Muncul di HP) -->
                 <button onclick="closeSidebar()" class="lg:hidden text-slate-400 hover:text-white">
                     <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
@@ -101,7 +99,7 @@
                 </button>
             </div>
 
-            <!-- BAGIAN TENGAH: Menu (Bisa di-scroll) -->
+            <!-- BAGIAN TENGAH: Menu -->
             <nav class="sidebar-nav px-4 py-4 space-y-1">
                 @php
                     $menus = [
@@ -118,6 +116,7 @@
                         ['label' => 'Golongan', 'route' => 'master.golongan'],
                         ['label' => 'Pangkat', 'route' => 'master.pangkat'],
                         ['label' => 'COA', 'route' => 'master.coa'],
+                        ['label' => 'Akun', 'route' => 'master.akun'],
                         ['label' => 'Kota', 'route' => 'master.kota'],
                         ['label' => 'Tarif', 'route' => 'master.tarif'],
                     ];
@@ -151,19 +150,28 @@
                 </div>
             </nav>
 
-            <!-- BAGIAN BAWAH: Profil + Tombol Logout -->
+            <!-- BAGIAN BAWAH: Profil + Logout -->
             <div class="p-4 border-t shrink-0" style="border-color: #1e293b;">
-                <div class="flex items-center gap-3 mb-3">
-                    <div class="w-9 h-9 rounded-full bg-white flex items-center justify-center text-sm font-extrabold text-blue-900 shadow-sm leading-none" style="width: 2.25rem; height: 2.25rem; min-width: 2.25rem; min-height: 2.25rem; border-radius: 9999px;">
+                <a href="{{ route('profile.edit') }}" onclick="closeSidebar(); openProfileModal(event)" class="flex items-center gap-3 mb-3 rounded-lg p-2 -m-2 hover:bg-slate-800 transition-colors group">
+                    <div class="flex-shrink-0 bg-white flex items-center justify-center text-sm font-extrabold text-blue-900 shadow-sm leading-none" 
+                         style="width: 2.25rem; height: 2.25rem; min-width: 2.25rem; min-height: 2.25rem; border-radius: 9999px; line-height: 1;">
                         {{ substr(Auth::user()->name, 0, 1) }}
                     </div>
-                    <div class="min-w-0">
-                        <div class="text-sm font-semibold text-white truncate">{{ Auth::user()->name }}</div>
+                    <div class="min-w-0 flex-1">
+                        <div class="text-sm font-semibold text-white truncate group-hover:text-blue-300 transition-colors">
+                            {{ Auth::user()->name }}
+                        </div>
                         <div class="text-xs text-slate-400 truncate">Super Admin</div>
                     </div>
-                </div>
-                <button type="button" onclick="confirmLogout(event)" class="w-full flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-colors">
-                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+                    <svg class="h-4 w-4 text-slate-400 group-hover:text-blue-300 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                </a>
+
+                <button type="button" onclick="confirmLogout(event)" class="w-full flex items-center justify-center gap-2 rounded-lg bg-red-600 px-3 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-red-700 transition-colors">
+                    <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                    </svg>
                     Keluar
                 </button>
             </div>
@@ -171,7 +179,7 @@
 
         <!-- KONTEN UTAMA -->
         <div class="flex-1 flex flex-col min-w-0">
-            <!-- Header Mobile (Hamburger) -->
+            <!-- Header Mobile -->
             <header class="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-30">
                 <div class="flex items-center gap-3">
                     <button onclick="openSidebar()" class="text-slate-600 hover:text-slate-900 focus:outline-none">
@@ -181,14 +189,18 @@
                 </div>
             </header>
 
-            <!-- Main Content -->
+            <!-- ✅ MAIN CONTENT (Mendukung Livewire & Blade biasa) -->
             <main class="flex-1 p-4 sm:p-6 lg:p-8">
-                {{ $slot }}
+                @hasSection('content')
+                    @yield('content')
+                @else
+                    {{ $slot ?? '' }}
+                @endif
             </main>
         </div>
     </div>
 
-    <!-- Form Logout Tersembunyi -->
+    <!-- Form Logout -->
     <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">
         @csrf
     </form>
@@ -198,10 +210,10 @@
     <script src="https://unpkg.com/html5-qrcode"></script>
     @livewireScripts
 
+    @include('layouts.profile-modal', ['force' => true])
+    @include('layouts.flash')
+
     <script>
-        // ==========================================
-        // FUNGSI SIDEBAR
-        // ==========================================
         function openSidebar() {
             document.getElementById('sidebar').classList.add('open');
             document.getElementById('sidebarOverlay').classList.add('open');
@@ -212,9 +224,6 @@
             document.getElementById('sidebarOverlay').classList.remove('open');
         }
 
-        // ==========================================
-        // FUNGSI DROPDOWN MASTER DATA
-        // ==========================================
         function toggleMaster() {
             const menu = document.getElementById('masterMenu');
             const icon = document.getElementById('masterIcon');
@@ -227,13 +236,9 @@
             }
         }
 
-        // ==========================================
-        // FUNGSI KONFIRMASI LOGOUT (SWEETALERT)
-        // ==========================================
         function confirmLogout(event) {
             if (event) event.preventDefault();
 
-            // Fallback kalau SweetAlert belum load
             if (typeof Swal === 'undefined') {
                 if (confirm('Yakin ingin logout?')) {
                     document.getElementById('logout-form').submit();
@@ -267,9 +272,6 @@
             });
         }
 
-        // ==========================================
-        // LIVEWIRE SWEETALERT LISTENER
-        // ==========================================
         document.addEventListener('livewire:init', () => {
             Livewire.on('swal', (data) => {
                 const config = data[0] || data;

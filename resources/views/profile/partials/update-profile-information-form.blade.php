@@ -54,7 +54,7 @@
             <div>
                 <label for="pangkat_id" class="block text-sm font-semibold text-slate-800">Pangkat</label>
                 <select id="pangkat_id" name="pangkat_id" class="{{ $inp('pangkat_id') }}">
-                    <option value="">-- Pilih Pangkat --</option>
+                    <option value="">Pilih Pangkat</option>
                     @foreach(\App\Models\Pangkat::orderBy('id')->get() as $p)
                         <option value="{{ $p->id }}" {{ (old('pangkat_id', $user->pangkat_id) == $p->id) ? 'selected' : '' }}>
                             {{ $p->nama }} ({{ $p->golongan_ruang }})
@@ -68,7 +68,7 @@
             <div>
                 <label for="golongan_id" class="block text-sm font-semibold text-slate-800">Golongan</label>
                 <select id="golongan_id" name="golongan_id" class="{{ $inp('golongan_id') }}">
-                    <option value="">-- Pilih Golongan --</option>
+                    <option value="">Pilih Golongan</option>
                     @foreach(\App\Models\Golongan::orderBy('nama')->get() as $gol)
                         <option value="{{ $gol->id }}" {{ (old('golongan_id', $user->golongan_id) == $gol->id) ? 'selected' : '' }}>
                             {{ $gol->nama }}
@@ -82,7 +82,7 @@
             <div>
                 <label for="jabatan_id" class="block text-sm font-semibold text-slate-800">Jabatan</label>
                 <select id="jabatan_id" name="jabatan_id" class="{{ $inp('jabatan_id') }}">
-                    <option value="">-- Pilih Jabatan --</option>
+                    <option value="">Pilih Jabatan</option>
                     @foreach(\App\Models\Jabatan::orderBy('level')->get() as $jab)
                         <option value="{{ $jab->id }}" {{ (old('jabatan_id', $user->jabatan_id) == $jab->id) ? 'selected' : '' }}>
                             {{ $jab->nama }}
@@ -96,7 +96,7 @@
             <div>
                 <label for="divisi_id" class="block text-sm font-semibold text-slate-800">Divisi</label>
                 <select id="divisi_id" name="divisi_id" class="{{ $inp('divisi_id') }}">
-                    <option value="">-- Pilih Divisi --</option>
+                    <option value="">Pilih Divisi</option>
                     @foreach(\App\Models\Divisi::orderBy('nama')->get() as $div)
                         <option value="{{ $div->id }}" {{ (old('divisi_id', $user->divisi_id) == $div->id) ? 'selected' : '' }}>
                             {{ $div->nama }}
