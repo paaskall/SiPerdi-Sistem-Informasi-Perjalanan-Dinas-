@@ -3,57 +3,33 @@
 namespace App\Livewire\MasterData;
 
 use App\Models\Golongan;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class GolonganIndex extends Component
+class GolonganIndex extends BaseCrud
 {
-    use WithPagination;
-
-    public $golonganId, $nama;
-    public $isModalOpen = false;
-    public $search = '';
-
-    protected $rules = [
-        'nama' => 'required|string|max:50',
-    ];
-
-    public function updatingSearch() { $this->resetPage(); }
-
-    public function render()
+    protected function model(): string
     {
-        $golongans = Golongan::where('nama', 'like', '%'.$this->search.'%')
-            ->orderBy('nama')->paginate(10);
-
-    return view('livewire.master-data.golongan-index', compact('golongans'))
-        ->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
-    
+        return Golongan::class;
     }
 
-    public function openModal() { $this->resetFields(); $this->isModalOpen = true; }
-    public function closeModal() { $this->isModalOpen = false; $this->resetFields(); }
-
-    public function edit($id)
+    protected function fields(): array
     {
-        $gol = Golongan::findOrFail($id);
-        $this->golonganId = $id;
-        $this->nama = $gol->nama;
-        $this->isModalOpen = true;
+        return ['nama'];
     }
 
-    public function save()
+    protected function orderBy(): string
     {
-        $this->validate();
-        Golongan::updateOrCreate(['id' => $this->golonganId], ['nama' => $this->nama]);
-        session()->flash('message', $this->golonganId ? 'Golongan diupdate.' : 'Golongan ditambahkan.');
-        $this->closeModal();
+        return 'nama';
     }
 
-    public function delete($id)
+    protected function entityLabel(): string
     {
-        Golongan::findOrFail($id)->delete();
-        session()->flash('message', 'Golongan dihapus.');
+        return 'Golongan';
     }
 
-    private function resetFields() { $this->reset(['golonganId', 'nama']); $this->resetValidation(); }
+    protected function rules(): array
+    {
+        return [
+            'form.nama' => 'required|string|max:50',
+        ];
+    }
 }

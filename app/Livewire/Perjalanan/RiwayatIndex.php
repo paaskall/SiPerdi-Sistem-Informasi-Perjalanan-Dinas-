@@ -15,12 +15,12 @@ class RiwayatIndex extends Component
 
     // Property untuk Modal Edit
     public $showEditModal = false;
-    public $editStep = 1; // 1 = Info Perjalanan, 2 = Rincian Biaya
+    public $editStep = 1; // 1 = Info Perjalanan, 2 = Rincian Biaya, 3 = Konfirmasi
     public $editId;
-    
+
     // Data Perjalanan
     public $editProvinsi, $editKotaTujuanId, $editTanggalBerangkat, $editTanggalPulang, $editMaksud, $editTempatBerangkat, $editAlatAngkutan, $editTingkatBiaya;
-    
+
     // Data Rincian
     public $editRincian = [];
     public $editTotalEstimasi = 0;
@@ -31,7 +31,9 @@ class RiwayatIndex extends Component
 
         // Validasi: Pemilik form ATAU Super Admin yang boleh edit
         $isSuperAdmin = Auth::user()->hasRole('super-admin');
-        if ($perjalanan->pegawai_id !== Auth::id() && !$isSuperAdmin) {
+
+        // FIX: cast ke int agar "5" (string dari DB) tidak dianggap berbeda dengan 5 (int)
+        if ((int) $perjalanan->pegawai_id !== (int) Auth::id() && !$isSuperAdmin) {
             $this->dispatch('swal', ['icon' => 'error', 'title' => 'Akses Ditolak', 'text' => 'Anda tidak berhak mengedit form ini.']);
             return;
         }
@@ -43,8 +45,11 @@ class RiwayatIndex extends Component
         $this->editId = $perjalanan->id;
         $this->editProvinsi = $perjalanan->kotaTujuan->provinsi ?? null;
         $this->editKotaTujuanId = $perjalanan->kota_tujuan_id;
-        $this->editTanggalBerangkat = $perjalanan->tanggal_berangkat->format('Y-m-d');
-        $this->editTanggalPulang = $perjalanan->tanggal_pulang->format('Y-m-d');
+
+        // FIX: null-safe agar tidak error 500 kalau tanggal kosong / belum di-cast
+        $this->editTanggalBerangkat = $perjalanan->tanggal_berangkat?->format('Y-m-d');
+        $this->editTanggalPulang = $perjalanan->tanggal_pulang?->format('Y-m-d');
+
         $this->editMaksud = $perjalanan->maksud_perjalanan;
         $this->editTempatBerangkat = $perjalanan->tempat_berangkat;
         $this->editAlatAngkutan = $perjalanan->alat_angkutan;
@@ -72,8 +77,8 @@ class RiwayatIndex extends Component
         $this->showEditModal = false;
         $this->editStep = 1;
         $this->reset([
-            'editId', 'editProvinsi', 'editKotaTujuanId', 'editTanggalBerangkat', 'editTanggalPulang', 
-            'editMaksud', 'editTempatBerangkat', 'editAlatAngkutan', 'editTingkatBiaya', 
+            'editId', 'editProvinsi', 'editKotaTujuanId', 'editTanggalBerangkat', 'editTanggalPulang',
+            'editMaksud', 'editTempatBerangkat', 'editAlatAngkutan', 'editTingkatBiaya',
             'editRincian', 'editTotalEstimasi'
         ]);
     }
@@ -102,13 +107,14 @@ class RiwayatIndex extends Component
         }
     }
 
-    // Fungsi untuk update qty/harga secara live di modal
+    // Hitung ulang nominal saat qty / harga satuan diubah di modal.
+    // FIX: di Livewire 3, $key berbentuk "0.qty" (2 bagian), bukan "editRincian.0.qty" (3 bagian).
     public function updatedEditRincian($value, $key)
     {
         $parts = explode('.', $key);
-        if (count($parts) === 3) {
-            $index = (int) $parts[1];
-            $field = $parts[2];
+        if (count($parts) === 2) {
+            $index = (int) $parts[0];
+            $field = $parts[1];
 
             if (in_array($field, ['qty', 'harga_satuan'])) {
                 $qty = (float) ($this->editRincian[$index]['qty'] ?? 0);
@@ -138,7 +144,7 @@ class RiwayatIndex extends Component
         ]);
 
         $perjalanan = PerjalananDinas::findOrFail($this->editId);
-        
+
         $start = \Carbon\Carbon::parse($this->editTanggalBerangkat);
         $end = \Carbon\Carbon::parse($this->editTanggalPulang);
         $jumlahHari = $start->diffInDays($end) + 1;
@@ -162,8 +168,7 @@ class RiwayatIndex extends Component
         }
 
         $this->closeEditModal();
-        
-        // ✅ MENGGUNAKAN EVENT BARU UNTUK TOAST SUCCESS
+
         $this->dispatch('swal:success', ['message' => 'Data UMK berhasil diperbarui!']);
     }
 
@@ -172,14 +177,12 @@ class RiwayatIndex extends Component
         $user = Auth::user();
         $isSuperAdmin = $user->hasRole('super-admin');
 
-        // ✅ QUERY UNTUK MENAMPILKAN SEMUA UMK JIKA SUPER ADMIN
+        // Super Admin melihat semua UMK, pegawai biasa hanya miliknya sendiri
         $query = PerjalananDinas::with(['kotaTujuan', 'laporan', 'pegawai']);
 
         if (!$isSuperAdmin) {
-            // Jika BUKAN Super Admin, tampilkan hanya milik sendiri
             $query->where('pegawai_id', $user->id);
         }
-        // Jika Super Admin, JANGAN difilter (tampilkan semua data)
 
         $riwayats = $query->latest()->paginate(10);
 
@@ -192,11 +195,11 @@ class RiwayatIndex extends Component
         $coas = Coa::where('aktif', true)->orderBy('kode')->get();
 
         return view('livewire.perjalanan.riwayat-index', [
-            'riwayats' => $riwayats, 
+            'riwayats' => $riwayats,
             'provinsis' => $provinsis,
             'kotas' => $kotas,
             'coas' => $coas,
-            'isSuperAdmin' => $isSuperAdmin, // Kirim status ke view
-        ])->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
+            'isSuperAdmin' => $isSuperAdmin,
+        ])->layout($isSuperAdmin ? 'layouts.super-admin' : 'layouts.app');
     }
 }

@@ -9,84 +9,31 @@
     <link rel="preconnect" href="https://fonts.bunny.net">
     <link href="https://fonts.bunny.net/css?family=plus-jakarta-sans:400,500,600,700,800&display=swap" rel="stylesheet" />
 
-    @vite(['resources/css/app.css'])
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     @livewireStyles
 
     <style>
         body { font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif; }
-        
-        /* SIDEBAR */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            width: 16rem;
-            background-color: #0f172a;
-            z-index: 50;
-            transform: translateX(-100%);
-            transition: transform 0.3s ease-in-out;
-            display: flex;
-            flex-direction: column;
-        }
-        .sidebar.open {
-            transform: translateX(0);
-        }
-
-        /* OVERLAY */
-        .sidebar-overlay {
-            position: fixed;
-            inset: 0;
-            background-color: rgba(15, 23, 42, 0.6);
-            backdrop-filter: blur(4px);
-            z-index: 40;
-            display: none;
-        }
-        .sidebar-overlay.open {
-            display: block;
-        }
-
-        /* LAPTOP */
+        .sidebar { position: fixed; top: 0; bottom: 0; left: 0; width: 16rem; background-color: #0f172a; z-index: 50; transform: translateX(-100%); transition: transform 0.3s ease-in-out; display: flex; flex-direction: column; }
+        .sidebar.open { transform: translateX(0); }
+        .sidebar-overlay { position: fixed; inset: 0; background-color: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); z-index: 40; display: none; }
+        .sidebar-overlay.open { display: block; }
         @media (min-width: 1024px) {
-            .sidebar {
-                position: sticky;
-                top: 0;
-                height: 100vh;
-                transform: translateX(0) !important;
-                z-index: auto;
-            }
-            .sidebar-overlay {
-                display: none !important;
-            }
+            .sidebar { position: sticky; top: 0; height: 100vh; transform: translateX(0) !important; z-index: auto; }
+            .sidebar-overlay { display: none !important; }
         }
-
-        /* SCROLL DI TENGAH SIDEBAR */
-        .sidebar-nav {
-            flex: 1 1 0%;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        .sidebar-nav::-webkit-scrollbar {
-            width: 4px;
-        }
-        .sidebar-nav::-webkit-scrollbar-thumb {
-            background-color: rgba(148, 163, 184, 0.3);
-            border-radius: 9999px;
-        }
+        .sidebar-nav { flex: 1 1 0%; overflow-y: auto; overflow-x: hidden; }
+        .sidebar-nav::-webkit-scrollbar { width: 4px; }
+        .sidebar-nav::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.3); border-radius: 9999px; }
     </style>
 </head>
 <body class="bg-slate-50 text-slate-700 antialiased">
 
-    <!-- OVERLAY -->
     <div id="sidebarOverlay" class="sidebar-overlay" onclick="closeSidebar()"></div>
 
     <div class="min-h-screen flex">
-        
-        <!-- SIDEBAR -->
+
         <aside id="sidebar" class="sidebar">
-            
-            <!-- BAGIAN ATAS: Logo + Tombol X -->
             <div class="h-16 flex items-center justify-between px-6 border-b shrink-0" style="border-color: #1e293b;">
                 <a href="{{ route('dashboard') }}" class="flex items-center gap-3">
                     <img src="{{ asset('img/lan.png') }}" alt="Logo" class="h-8 w-auto brightness-0 invert">
@@ -99,7 +46,6 @@
                 </button>
             </div>
 
-            <!-- BAGIAN TENGAH: Menu -->
             <nav class="sidebar-nav px-4 py-4 space-y-1">
                 @php
                     $menus = [
@@ -124,15 +70,13 @@
 
                 @foreach ($menus as $menu)
                     @php $isActive = request()->routeIs($menu['route']); @endphp
-                    <a href="{{ route($menu['route']) }}" 
-                       onclick="closeSidebar()"
+                    <a href="{{ route($menu['route']) }}" onclick="closeSidebar()"
                        class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors {{ $isActive ? 'bg-blue-600 text-white' : 'text-slate-300 hover:bg-slate-800 hover:text-white' }}">
                         <svg class="h-5 w-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="{{ $menu['icon'] }}"/></svg>
                         {{ $menu['label'] }}
                     </a>
                 @endforeach
 
-                <!-- Dropdown Master Data -->
                 <div>
                     <button onclick="toggleMaster()" class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium text-slate-300 hover:bg-slate-800 hover:text-white transition-colors">
                         <div class="flex items-center gap-3">
@@ -150,10 +94,9 @@
                 </div>
             </nav>
 
-            <!-- BAGIAN BAWAH: Profil + Logout -->
             <div class="p-4 border-t shrink-0" style="border-color: #1e293b;">
                 <a href="{{ route('profile.edit') }}" onclick="closeSidebar(); openProfileModal(event)" class="flex items-center gap-3 mb-3 rounded-lg p-2 -m-2 hover:bg-slate-800 transition-colors group">
-                    <div class="flex-shrink-0 bg-white flex items-center justify-center text-sm font-extrabold text-blue-900 shadow-sm leading-none" 
+                    <div class="flex-shrink-0 bg-white flex items-center justify-center text-sm font-extrabold text-blue-900 shadow-sm leading-none"
                          style="width: 2.25rem; height: 2.25rem; min-width: 2.25rem; min-height: 2.25rem; border-radius: 9999px; line-height: 1;">
                         {{ substr(Auth::user()->name, 0, 1) }}
                     </div>
@@ -177,9 +120,7 @@
             </div>
         </aside>
 
-        <!-- KONTEN UTAMA -->
         <div class="flex-1 flex flex-col min-w-0">
-            <!-- Header Mobile -->
             <header class="lg:hidden bg-white border-b border-slate-200 p-4 flex items-center justify-between sticky top-0 z-30">
                 <div class="flex items-center gap-3">
                     <button onclick="openSidebar()" class="text-slate-600 hover:text-slate-900 focus:outline-none">
@@ -189,7 +130,6 @@
                 </div>
             </header>
 
-            <!-- ✅ MAIN CONTENT (Mendukung Livewire & Blade biasa) -->
             <main class="flex-1 p-4 sm:p-6 lg:p-8">
                 @hasSection('content')
                     @yield('content')
@@ -200,30 +140,27 @@
         </div>
     </div>
 
-    <!-- Form Logout -->
     <form method="POST" action="{{ route('logout') }}" id="logout-form" class="hidden">
         @csrf
     </form>
 
-    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="https://unpkg.com/html5-qrcode"></script>
     @livewireScripts
 
     @include('layouts.profile-modal', ['force' => true])
-    @include('layouts.flash')
+
+    @stack('scripts')
 
     <script>
         function openSidebar() {
             document.getElementById('sidebar').classList.add('open');
             document.getElementById('sidebarOverlay').classList.add('open');
         }
-
         function closeSidebar() {
             document.getElementById('sidebar').classList.remove('open');
             document.getElementById('sidebarOverlay').classList.remove('open');
         }
-
         function toggleMaster() {
             const menu = document.getElementById('masterMenu');
             const icon = document.getElementById('masterIcon');
@@ -235,61 +172,6 @@
                 icon.style.transform = 'rotate(0deg)';
             }
         }
-
-        function confirmLogout(event) {
-            if (event) event.preventDefault();
-
-            if (typeof Swal === 'undefined') {
-                if (confirm('Yakin ingin logout?')) {
-                    document.getElementById('logout-form').submit();
-                }
-                return;
-            }
-
-            Swal.fire({
-                title: 'Keluar Aplikasi?',
-                text: 'Anda akan keluar dari sistem. Yakin ingin melanjutkan?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#dc2626',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Ya, Keluar',
-                cancelButtonText: 'Batal',
-                reverseButtons: true,
-                customClass: { popup: 'font-sans rounded-2xl' }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    Swal.fire({
-                        title: 'Sedang logout...',
-                        text: 'Mohon tunggu sebentar.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => { Swal.showLoading(); }
-                    });
-                    document.getElementById('logout-form').submit();
-                }
-            });
-        }
-
-        document.addEventListener('livewire:init', () => {
-            Livewire.on('swal', (data) => {
-                const config = data[0] || data;
-                Swal.fire({ title: config.title, text: config.text, icon: config.icon || 'info', confirmButtonColor: '#1e3a8a', ...config });
-            });
-            Livewire.on('swal:confirm', (data) => {
-                const config = data[0] || data;
-                Swal.fire({
-                    title: config.title, text: config.text, icon: config.icon || 'warning', showCancelButton: true,
-                    confirmButtonColor: '#dc2626', cancelButtonColor: '#64748b',
-                    confirmButtonText: config.confirmButtonText || 'Ya', cancelButtonText: config.cancelButtonText || 'Batal'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        Livewire.dispatch(config.method, config.params);
-                    }
-                });
-            });
-        });
     </script>
 </body>
 </html>

@@ -3,61 +3,34 @@
 namespace App\Livewire\MasterData;
 
 use App\Models\Kota;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class KotaIndex extends Component
+class KotaIndex extends BaseCrud
 {
-    use WithPagination;
-
-    public $kotaId, $nama, $provinsi;
-    public $isModalOpen = false;
-    public $search = '';
-
-    protected $rules = [
-        'nama' => 'required|string|max:255',
-        'provinsi' => 'nullable|string|max:255',
-    ];
-
-    public function updatingSearch() { $this->resetPage(); }
-
-    public function render()
+    protected function model(): string
     {
-        $kotas = Kota::where('nama', 'like', '%'.$this->search.'%')
-            ->orWhere('provinsi', 'like', '%'.$this->search.'%')
-            ->orderBy('nama')->paginate(10);
-
-        return view('livewire.master-data.kota-index', compact('kotas'))->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
+        return Kota::class;
     }
 
-    public function openModal() { $this->resetFields(); $this->isModalOpen = true; }
-    public function closeModal() { $this->isModalOpen = false; $this->resetFields(); }
-
-    public function edit($id)
+    protected function fields(): array
     {
-        $kota = Kota::findOrFail($id);
-        $this->kotaId = $id;
-        $this->nama = $kota->nama;
-        $this->provinsi = $kota->provinsi;
-        $this->isModalOpen = true;
+        return ['nama', 'provinsi'];
     }
 
-    public function save()
+    protected function orderBy(): string
     {
-        $this->validate();
-        Kota::updateOrCreate(
-            ['id' => $this->kotaId],
-            ['nama' => $this->nama, 'provinsi' => $this->provinsi]
-        );
-        session()->flash('message', $this->kotaId ? 'Kota diupdate.' : 'Kota ditambahkan.');
-        $this->closeModal();
+        return 'nama';
     }
 
-    public function delete($id)
+    protected function entityLabel(): string
     {
-        Kota::findOrFail($id)->delete();
-        session()->flash('message', 'Kota dihapus.');
+        return 'Kota';
     }
 
-    private function resetFields() { $this->reset(['kotaId', 'nama', 'provinsi']); $this->resetValidation(); }
+    protected function rules(): array
+    {
+        return [
+            'form.nama' => 'required|string|max:255',
+            'form.provinsi' => 'nullable|string|max:255',
+        ];
+    }
 }

@@ -1,7 +1,7 @@
 <div class="py-8 sm:py-10">
     @php
         $inp = fn ($field) => 'block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-900/20 '
-            . ($errors->has($field) ? 'border-red-400' : 'border-slate-300');
+            . ($errors->has('form.' . $field) ? 'border-red-400' : 'border-slate-300');
         $user = auth()->user();
     @endphp
 
@@ -26,7 +26,7 @@
         <div class="mx-auto max-w-4xl">
             <div class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
 
-                <!-- ✅ FORM KHUSUS SUPER ADMIN -->
+                <!-- FORM KHUSUS SUPER ADMIN -->
                 @if($isSuperAdmin)
                 <div class="border-b border-blue-100 bg-blue-100/30 p-4 sm:p-6">
                     <h3 class="flex items-center gap-2.5 text-sm font-bold text-blue-900 mb-3">
@@ -34,7 +34,6 @@
                         Buat UMK Untuk Pegawai (Super Admin)
                     </h3>
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
-                        <!-- Filter Divisi -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-800 mb-1">Filter Divisi</label>
                             <select wire:model.live="filterDivisi" class="block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
@@ -44,8 +43,6 @@
                                 @endforeach
                             </select>
                         </div>
-                        
-                        <!-- Filter Jabatan -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-800 mb-1">Filter Jabatan</label>
                             <select wire:model.live="filterJabatan" class="block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
@@ -55,8 +52,6 @@
                                 @endforeach
                             </select>
                         </div>
-
-                        <!-- Search Bebas -->
                         <div>
                             <label class="block text-sm font-semibold text-slate-800 mb-1">Cari Nama / NIP</label>
                             <input wire:model.live.debounce.300ms="searchPegawai" type="text" placeholder="Ketik nama atau NIP..." class="block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
@@ -65,15 +60,14 @@
 
                     <!-- Toggle Manual -->
                     <div class="mb-3 flex items-center gap-2">
-                        <input type="checkbox" wire:model.live="is_pegawai_manual" id="manual" class="rounded border-slate-300 text-blue-900">
+                        <input type="checkbox" wire:model.live="form.is_pegawai_manual" id="manual" class="rounded border-slate-300 text-blue-900">
                         <label for="manual" class="text-sm font-medium text-slate-700 cursor-pointer">Input Manual</label>
                     </div>
 
-                    @if(!$is_pegawai_manual)
-                        <!-- Pilih Pegawai (dari List) -->
+                    @if(!$form->is_pegawai_manual)
                         <div wire:key="pegawai-select-{{ $filterDivisi }}-{{ $filterJabatan }}-{{ $searchPegawai }}">
                             <label class="block text-sm font-semibold text-slate-800 mb-1">Pilih Pegawai</label>
-                            <select wire:model.live="pegawai_id_pilihan" class="block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
+                            <select wire:model.live="form.pegawai_id_pilihan" class="block w-full rounded-lg border bg-white px-3.5 py-2.5 text-sm border-slate-300">
                                 <option value="">Pilih Pegawai</option>
                                 @forelse($pegawais as $p)
                                     <option value="{{ $p->id }}">{{ $p->name }} - {{ $p->nip ?? 'Tanpa NIP' }}</option>
@@ -81,39 +75,39 @@
                                     <option value="">Tidak ada pegawai yang cocok</option>
                                 @endforelse
                             </select>
-                            <x-input-error :messages="$errors->get('pegawai_id_pilihan')" class="mt-2" />
+                            <x-input-error :messages="$errors->get('form.pegawai_id_pilihan')" class="mt-2" />
                         </div>
                     @else
-                        <!-- Input Manual -->
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 p-3 border border-blue-200 rounded-lg bg-white">
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700">Nama Pegawai</label>
-                                <input wire:model="nama_pegawai_manual" type="text" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300" placeholder="Nama lengkap">
-                                <x-input-error :messages="$errors->get('nama_pegawai_manual')" class="mt-1" />
+                                <input wire:model="form.nama_pegawai_manual" type="text" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300" placeholder="Nama lengkap">
+                                <x-input-error :messages="$errors->get('form.nama_pegawai_manual')" class="mt-1" />
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700">NIP (Opsional)</label>
-                                <input wire:model="nip_pegawai_manual" type="text" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300" placeholder="Kosongkan jika tidak ada">
+                                <input wire:model="form.nip_pegawai_manual" type="text" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300" placeholder="Kosongkan jika tidak ada">
+                                <x-input-error :messages="$errors->get('form.nip_pegawai_manual')" class="mt-1" />
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700">Golongan</label>
-                                <select wire:model="golongan_id_manual" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
+                                <select wire:model="form.golongan_id_manual" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
                                     <option value="">Pilih Golongan</option>
                                     @foreach($golongans as $g)
                                         <option value="{{ $g->id }}">{{ $g->nama }}</option>
                                     @endforeach
                                 </select>
-                                <x-input-error :messages="$errors->get('golongan_id_manual')" class="mt-1" />
+                                <x-input-error :messages="$errors->get('form.golongan_id_manual')" class="mt-1" />
                             </div>
                             <div>
                                 <label class="block text-xs font-semibold text-slate-700">Divisi</label>
-                                <select wire:model="divisi_id_manual" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
+                                <select wire:model="form.divisi_id_manual" class="mt-1 block w-full rounded-lg border bg-white px-3 py-2 text-sm border-slate-300">
                                     <option value="">Pilih Divisi</option>
                                     @foreach($divisis as $d)
                                         <option value="{{ $d->id }}">{{ $d->nama }}</option>
                                     @endforeach
                                 </select>
-                                <x-input-error :messages="$errors->get('divisi_id_manual')" class="mt-1" />
+                                <x-input-error :messages="$errors->get('form.divisi_id_manual')" class="mt-1" />
                             </div>
                         </div>
                     @endif
@@ -127,7 +121,6 @@
                         Data Pemohon
                     </h3>
                     <div class="grid grid-cols-1 gap-4 text-sm sm:grid-cols-2">
-                        {{-- Data Pemohon diambil dari variabel $pemohon yang dikirim dari render() --}}
                         <div><span class="text-slate-500">Nama Lengkap</span><p class="font-semibold text-slate-900">{{ $pemohon->name ?? '-' }}</p></div>
                         <div><span class="text-slate-500">NIP</span><p class="font-semibold text-slate-900">{{ $pemohon->nip ?? '-' }}</p></div>
                         <div><span class="text-slate-500">Jabatan</span><p class="font-semibold text-slate-900">{{ $pemohon->jabatan->nama ?? '-' }}</p></div>
@@ -148,65 +141,66 @@
                             </h3>
 
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
-                                {{-- No. Pembukuan tetap readonly --}}
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">No. Pembukuan</label>
-                                    <input wire:model="no_pembukuan" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
+                                    <input wire:model="form.no_pembukuan" type="text" readonly class="mt-1.5 block w-full cursor-not-allowed rounded-lg border border-slate-200 bg-slate-100 px-3.5 py-2.5 text-sm font-medium text-slate-500 focus:outline-none">
                                 </div>
 
-                                {{-- AKUN: dropdown dari tabel akuns --}}
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Akun</label>
-                                    <select wire:model="akun" class="{{ $inp('akun') }} mt-1.5">
+                                    <select wire:model="form.akun" class="{{ $inp('akun') }} mt-1.5">
                                         <option value="">Pilih Akun</option>
                                         @foreach($akuns as $a)
                                             <option value="{{ $a->kode }}">{{ $a->kode }}</option>
                                         @endforeach
                                     </select>
-                                    <x-input-error :messages="$errors->get('akun')" class="mt-1" />
+                                    <x-input-error :messages="$errors->get('form.akun')" class="mt-1" />
                                 </div>
 
-                                {{-- KODE SPD: input teks bebas --}}
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Kode SPD</label>
-                                    <input wire:model="no_spd" type="text" placeholder="Contoh: 2867/PLB.1.2.1/SDM.04.1" class="{{ $inp('no_spd') }} mt-1.5">
-                                    <x-input-error :messages="$errors->get('no_spd')" class="mt-1" />
+                                    <input wire:model="form.no_spd" type="text" placeholder="Contoh: 2867/PLB.1.2.1/SDM.04.1" class="{{ $inp('no_spd') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('form.no_spd')" class="mt-1" />
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-4 mb-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Tempat Berangkat</label>
-                                    <input wire:model="tempat_berangkat" type="text" class="{{ $inp('tempat_berangkat') }} mt-1.5">
+                                    <input wire:model="form.tempat_berangkat" type="text" class="{{ $inp('tempat_berangkat') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('form.tempat_berangkat')" class="mt-1" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Provinsi Tujuan</label>
-                                    <select wire:model.live="provinsi" class="{{ $inp('provinsi') }} mt-1.5">
+                                    <select wire:model.live="form.provinsi" class="{{ $inp('provinsi') }} mt-1.5">
                                         <option value="">Pilih Provinsi</option>
                                         @foreach($provinsis as $prov)
                                             <option value="{{ $prov }}">{{ $prov }}</option>
                                         @endforeach
                                     </select>
+                                    <x-input-error :messages="$errors->get('form.provinsi')" class="mt-1" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Kota / Kabupaten</label>
-                                    <select wire:model="kota_tujuan_id" class="{{ $inp('kota_tujuan_id') }} mt-1.5" @if(!$provinsi) disabled @endif>
+                                    <select wire:model="form.kota_tujuan_id" class="{{ $inp('kota_tujuan_id') }} mt-1.5" @if(!$form->provinsi) disabled @endif>
                                         <option value="">Pilih Kota</option>
                                         @foreach($kotas as $k)
                                             <option value="{{ $k->id }}">{{ $k->nama }}</option>
                                         @endforeach
                                     </select>
+                                    <x-input-error :messages="$errors->get('form.kota_tujuan_id')" class="mt-1" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Maksud Perjalanan</label>
-                                    <input wire:model="maksud_perjalanan" type="text" placeholder="Contoh: Rapat" class="{{ $inp('maksud_perjalanan') }} mt-1.5">
+                                    <input wire:model="form.maksud_perjalanan" type="text" placeholder="Contoh: Rapat" class="{{ $inp('maksud_perjalanan') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('form.maksud_perjalanan')" class="mt-1" />
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-3 mb-4">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Alat Angkutan</label>
-                                    <select wire:model="alat_angkutan" class="{{ $inp('alat_angkutan') }} mt-1.5">
+                                    <select wire:model="form.alat_angkutan" class="{{ $inp('alat_angkutan') }} mt-1.5">
                                         <option value="Pesawat">Pesawat</option>
                                         <option value="Kereta">Kereta</option>
                                         <option value="Bus">Bus</option>
@@ -215,7 +209,7 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Tingkat Biaya</label>
-                                    <select wire:model="tingkat_biaya" class="{{ $inp('tingkat_biaya') }} mt-1.5">
+                                    <select wire:model="form.tingkat_biaya" class="{{ $inp('tingkat_biaya') }} mt-1.5">
                                         <option value="A">A</option>
                                         <option value="B">B</option>
                                         <option value="C">C</option>
@@ -225,7 +219,7 @@
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Lama Perjalanan</label>
                                     <div class="mt-1.5 rounded-lg border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm">
-                                        <strong class="text-blue-900">{{ $jumlah_hari }} Hari</strong>
+                                        <strong class="text-blue-900">{{ $form->jumlah_hari }} Hari</strong>
                                     </div>
                                 </div>
                             </div>
@@ -233,11 +227,13 @@
                             <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Tanggal Berangkat</label>
-                                    <input wire:model.live="tanggal_berangkat" type="date" class="{{ $inp('tanggal_berangkat') }} mt-1.5">
+                                    <input wire:model.live="form.tanggal_berangkat" type="date" class="{{ $inp('tanggal_berangkat') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('form.tanggal_berangkat')" class="mt-1" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-semibold text-slate-800">Tanggal Pulang</label>
-                                    <input wire:model.live="tanggal_pulang" type="date" class="{{ $inp('tanggal_pulang') }} mt-1.5">
+                                    <input wire:model.live="form.tanggal_pulang" type="date" class="{{ $inp('tanggal_pulang') }} mt-1.5">
+                                    <x-input-error :messages="$errors->get('form.tanggal_pulang')" class="mt-1" />
                                 </div>
                             </div>
                         </div>
@@ -250,12 +246,12 @@
                             </h3>
 
                             <div class="space-y-4">
-                                @foreach($rincian as $index => $item)
+                                @foreach($form->rincian as $index => $item)
                                     @php
                                         $selectedCoa = collect($coas)->firstWhere('id', $item['coa_id']);
                                         $namaCoa = $selectedCoa ? strtolower($selectedCoa->nama) : '';
                                         $teksKet = strtolower($item['keterangan'] ?? '');
-                                        
+
                                         $isPenginapan = $selectedCoa && (str_contains($namaCoa, 'penginapan') || str_contains($namaCoa, 'hotel') || str_contains($namaCoa, 'akomodasi'));
                                         $isUangHarian = $selectedCoa && (str_contains($namaCoa, 'uang harian') || str_contains($namaCoa, 'uang saku') || str_contains($namaCoa, 'harian'));
                                         $isTaksi = str_contains($namaCoa, 'taksi') || str_contains($namaCoa, 'taxi') || str_contains($namaCoa, 'transport') || str_contains($teksKet, 'taksi') || str_contains($teksKet, 'ojek');
@@ -269,10 +265,10 @@
                                         if ($index === 0) $placeholder = 'Tiket Pesawat (Asal - Tujuan)';
                                         if ($index === 1) $placeholder = 'Transport Lokal / Taksi';
                                     @endphp
-                                    
-                                    <div wire:key="rincian-{{ $index }}" class="relative w-full rounded-xl border {{ $borderColor }} p-4 pr-12 mt-2">
-                                        
-                                        <button type="button" wire:click="hapusBaris({{ $index }})" 
+
+                                    <div wire:key="rincian-{{ $index }}-{{ $item['coa_id'] ?? 'empty' }}" class="relative w-full rounded-xl border {{ $borderColor }} p-4 pr-12 mt-2">
+
+                                        <button type="button" wire:click="hapusBaris({{ $index }})"
                                                 style="position: absolute; top: 12px; right: 12px; z-index: 50;"
                                                 class="flex h-7 w-7 items-center justify-center rounded-full bg-white/80 text-slate-400 shadow-sm transition-colors hover:bg-red-100 hover:text-red-600 focus:outline-none focus:ring-2 focus:ring-red-500/50"
                                                 title="Hapus baris ini">
@@ -301,7 +297,9 @@
                                         <div class="grid grid-cols-12 gap-3 items-start">
                                             <div class="col-span-12 md:col-span-3 mt-8">
                                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Kategori</label>
-                                                <select wire:model.live="rincian.{{ $index }}.coa_id" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300">
+                                                <select wire:model.live="form.rincian.{{ $index }}.coa_id" 
+                                                        wire:change="syncRincian({{ $index }})"
+                                                        class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300">
                                                     <option value="">Pilih</option>
                                                     @foreach($coas as $c)
                                                         <option value="{{ $c->id }}">{{ $c->nama }}</option>
@@ -310,19 +308,23 @@
                                             </div>
                                             <div class="col-span-12 md:col-span-3 mt-8">
                                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Keterangan</label>
-                                                <input wire:model="rincian.{{ $index }}.keterangan" type="text" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300" placeholder="{{ $placeholder }}">
+                                                <input wire:model="form.rincian.{{ $index }}.keterangan" type="text" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300" placeholder="{{ $placeholder }}">
                                             </div>
                                             <div class="col-span-3 md:col-span-1 mt-8">
                                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Qty</label>
-                                                <input wire:model.live="rincian.{{ $index }}.qty" type="number" min="1" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300 {{ $isPenginapan ? 'bg-blue-50 font-semibold' : ($isUangHarian ? 'bg-amber-50 font-semibold' : ($isTaksi ? 'bg-emerald-50 font-semibold' : '')) }}">
+                                                <input wire:model.live="form.rincian.{{ $index }}.qty" 
+                                                       wire:change="hitungTotal"
+                                                       type="number" min="1" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300 {{ $isPenginapan ? 'bg-blue-50 font-semibold' : ($isUangHarian ? 'bg-amber-50 font-semibold' : ($isTaksi ? 'bg-emerald-50 font-semibold' : '')) }}">
                                             </div>
                                             <div class="col-span-3 md:col-span-1 mt-8">
                                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Satuan</label>
-                                                <input wire:model="rincian.{{ $index }}.satuan" type="text" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300 {{ $isPenginapan ? 'bg-blue-50' : ($isUangHarian ? 'bg-amber-50' : ($isTaksi ? 'bg-emerald-50' : '')) }}">
+                                                <input wire:model="form.rincian.{{ $index }}.satuan" type="text" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300 {{ $isPenginapan ? 'bg-blue-50' : ($isUangHarian ? 'bg-amber-50' : ($isTaksi ? 'bg-emerald-50' : '')) }}">
                                             </div>
                                             <div class="col-span-6 md:col-span-2 mt-8">
                                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Harga Satuan</label>
-                                                <input wire:model.live="rincian.{{ $index }}.harga_satuan" type="number" min="0" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300">
+                                                <input wire:model.live="form.rincian.{{ $index }}.harga_satuan" 
+                                                       wire:change="hitungTotal"
+                                                       type="number" min="0" class="block w-full rounded-lg border bg-white px-2.5 py-2 text-sm border-slate-300">
                                             </div>
                                             <div class="col-span-6 md:col-span-2 mt-8">
                                                 <label class="block text-xs font-semibold text-slate-700 mb-1.5">Jumlah</label>
@@ -346,7 +348,7 @@
                     <div class="flex flex-col gap-4 border-t border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between sm:p-6">
                         <div>
                             <div class="text-xs font-semibold text-slate-500">Total Estimasi</div>
-                            <div class="mt-0.5 text-2xl font-extrabold tracking-tight text-slate-900">Rp {{ number_format($total_estimasi, 0, ',', '.') }}</div>
+                            <div class="mt-0.5 text-2xl font-extrabold tracking-tight text-slate-900">Rp {{ number_format($form->total_estimasi, 0, ',', '.') }}</div>
                         </div>
                         <div class="flex flex-col gap-3 sm:items-end">
                             @unless($profilLengkap)

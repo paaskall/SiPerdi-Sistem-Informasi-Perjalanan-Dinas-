@@ -3,91 +3,29 @@
 namespace App\Livewire\MasterData;
 
 use App\Models\Pangkat;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class PangkatIndex extends Component
+class PangkatIndex extends BaseCrud
 {
-    use WithPagination;
-
-    public $pangkatId, $nama, $golongan_ruang;
-    public $isModalOpen = false;
-    public $search = '';
-
-    protected $rules = [
-        'nama' => 'required|string|max:100',
-        'golongan_ruang' => 'nullable|string|max:20',
-    ];
-
-    public function updatingSearch()
+    protected function model(): string
     {
-        $this->resetPage();
+        return Pangkat::class;
     }
 
-    public function render()
+    protected function fields(): array
     {
-        $pangkats = Pangkat::where('nama', 'like', '%'.$this->search.'%')
-            ->orWhere('golongan_ruang', 'like', '%'.$this->search.'%')
-            ->orderBy('id')
-            ->paginate(10);
-
-        return view('livewire.master-data.pangkat-index', compact('pangkats'))
-            ->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
+        return ['nama', 'golongan_ruang'];
     }
 
-    public function openModal()
+    protected function entityLabel(): string
     {
-        $this->resetFields();
-        $this->isModalOpen = true;
+        return 'Pangkat';
     }
 
-    public function closeModal()
+    protected function rules(): array
     {
-        $this->isModalOpen = false;
-        $this->resetFields();
-    }
-
-    public function edit($id)
-    {
-        $pangkat = Pangkat::findOrFail($id);
-        $this->pangkatId = $id;
-        $this->nama = $pangkat->nama;
-        $this->golongan_ruang = $pangkat->golongan_ruang;
-        $this->isModalOpen = true;
-    }
-
-    public function save()
-    {
-        $this->validate();
-
-        Pangkat::updateOrCreate(
-            ['id' => $this->pangkatId],
-            ['nama' => $this->nama, 'golongan_ruang' => $this->golongan_ruang]
-        );
-
-        $this->dispatch('swal', [
-            'title' => 'Berhasil!',
-            'text' => $this->pangkatId ? 'Pangkat berhasil diperbarui.' : 'Pangkat berhasil ditambahkan.',
-            'icon' => 'success',
-        ]);
-
-        $this->closeModal();
-    }
-
-    public function delete($id)
-    {
-        Pangkat::findOrFail($id)->delete();
-
-        $this->dispatch('swal', [
-            'title' => 'Terhapus!',
-            'text' => 'Pangkat berhasil dihapus.',
-            'icon' => 'success',
-        ]);
-    }
-
-    private function resetFields()
-    {
-        $this->reset(['pangkatId', 'nama', 'golongan_ruang']);
-        $this->resetValidation();
+        return [
+            'form.nama' => 'required|string|max:100',
+            'form.golongan_ruang' => 'nullable|string|max:20',
+        ];
     }
 }

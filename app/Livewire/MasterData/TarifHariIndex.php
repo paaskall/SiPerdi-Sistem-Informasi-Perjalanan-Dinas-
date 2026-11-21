@@ -2,146 +2,103 @@
 
 namespace App\Livewire\MasterData;
 
-use App\Models\TarifHari;
-use App\Models\Kota;
 use App\Models\Golongan;
-use Livewire\Component;
-use Livewire\WithPagination;
+use App\Models\Kota;
+use App\Models\TarifHari;
 
-class TarifHariIndex extends Component
+class TarifHariIndex extends BaseCrud
 {
-    use WithPagination;
+    public string $filterProvinsi = '';
+    public string $filterGolongan = '';
 
-    public $tarifId, $kota_id, $golongan_id, $nominal;
-    public $isModalOpen = false;
+    protected function model(): string
+    {
+        return TarifHari::class;
+    }
 
-    // Properti Filter & Search
-    public $search = '';
-    public $filterProvinsi = '';
-    public $filterGolongan = '';
+    protected function fields(): array
+    {
+        return ['kota_id', 'golongan_id', 'nominal'];
+    }
 
-    protected $rules = [
-        'kota_id' => 'required|exists:kotas,id',
-        'golongan_id' => 'required|exists:golongans,id',
-        'nominal' => 'required|numeric|min:0',
-    ];
+    protected function orderBy(): string
+    {
+        return 'kota_id';
+    }
 
-    public function updatingSearch() { $this->resetPage(); }
-    public function updatingFilterProvinsi() { $this->resetPage(); $this->kota_id = ''; }
-    public function updatingFilterGolongan() { $this->resetPage(); }
+    protected function entityLabel(): string
+    {
+        return 'Tarif Harian';
+    }
 
+    protected function rules(): array
+    {
+        return [
+            'form.kota_id' => 'required|exists:kotas,id',
+            'form.golongan_id' => 'required|exists:golongans,id',
+            'form.nominal' => 'required|numeric|min:0',
+        ];
+    }
+
+    protected function beforeSave(array $data): array
+    {
+        $exists = TarifHari::where('kota_id', $data['kota_id'])
+            ->where('golongan_id', $data['golongan_id'])
+            ->when($this->modelId, fn ($q) => $q->where('id', '!=', $this->modelId))
+            ->exists();
+
+        if ($exists) {
+            $this->swalError('Tarif untuk Kota dan Golongan ini sudah ada. Silakan edit data yang sudah ada.');
+            return [];
+        }
+
+        return $data;
+    }
+
+    protected function extraViewData(): array
+    {
+        return [
+            'provinsis' => Kota::select('provinsi')->distinct()->orderBy('provinsi')->pluck('provinsi'),
+            'kotas' => $this->filterProvinsi
+                ? Kota::where('provinsi', $this->filterProvinsi)->orderBy('nama')->get()
+                : Kota::orderBy('nama')->get(),
+            'golongans' => Golongan::orderBy('nama')->get(),
+        ];
+    }
+
+    public function updatingFilterProvinsi(): void
+    {
+        $this->resetPage();
+        $this->form['kota_id'] = null;
+    }
+
+    public function updatingFilterGolongan(): void
+    {
+        $this->resetPage();
+    }
+
+    // Override render: tambahkan filter extra di query
     public function render()
     {
         $query = TarifHari::with(['kota', 'golongan']);
 
-        if ($this->search) {
-            $query->whereHas('kota', fn ($q) => $q->where('nama', 'like', '%' . $this->search . '%'));
+        if ($this->search !== '') {
+            $query->whereHas('kota', fn ($q) => $q->where('nama', 'like', "%{$this->search}%"));
         }
+
         if ($this->filterProvinsi) {
             $query->whereHas('kota', fn ($q) => $q->where('provinsi', $this->filterProvinsi));
         }
+
         if ($this->filterGolongan) {
             $query->where('golongan_id', $this->filterGolongan);
         }
 
-        $tarifs = $query->orderBy('kota_id')->paginate(10);
-        $provinsis = Kota::select('provinsi')->distinct()->orderBy('provinsi')->pluck('provinsi');
-        
-        $kotas = [];
-        if ($this->filterProvinsi) {
-            $kotas = Kota::where('provinsi', $this->filterProvinsi)->orderBy('nama')->get();
-        } else {
-            $kotas = Kota::orderBy('nama')->get();
-        }
+        $tarifs = $query->orderBy($this->orderBy())->paginate($this->perPage());
 
-        return view('livewire.master-data.tarif-hari-index', [
-            'tarifs' => $tarifs,
-            'kotas' => $kotas,
-            'provinsis' => $provinsis,
-            'golongans' => Golongan::orderBy('nama')->get()
-        ])->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
-    }
-
-    public function openModal() 
-    { 
-        $this->resetFields(); 
-        $this->isModalOpen = true; 
-    }
-
-    public function closeModal() 
-    { 
-        $this->isModalOpen = false; 
-        $this->resetFields(); 
-    }
-
-    public function edit($id)
-    {
-        $tarif = TarifHari::findOrFail($id);
-        $this->tarifId = $id;
-        $this->kota_id = $tarif->kota_id;
-        $this->golongan_id = $tarif->golongan_id;
-        $this->nominal = $tarif->nominal;
-        
-        if ($tarif->kota) {
-            $this->filterProvinsi = $tarif->kota->provinsi;
-        }
-        
-        $this->isModalOpen = true;
-    }
-
-    public function save()
-    {
-        $this->validate();
-
-        // Cek Duplikat
-        $exists = TarifHari::where('kota_id', $this->kota_id)
-            ->where('golongan_id', $this->golongan_id)
-            ->when($this->tarifId, fn ($query) => $query->where('id', '!=', $this->tarifId))
-            ->exists();
-
-        if ($exists) {
-            $this->dispatch('swal', [
-                'icon' => 'error',
-                'title' => 'Data Duplikat!',
-                'text' => 'Tarif untuk Kota dan Golongan ini sudah ada. Silakan edit data yang sudah ada.'
-            ]);
-            return;
-        }
-
-        TarifHari::updateOrCreate(
-            ['id' => $this->tarifId],
-            [
-                'kota_id' => $this->kota_id,
-                'golongan_id' => $this->golongan_id,
-                'nominal' => $this->nominal
-            ]
-        );
-
-        // SweetAlert Sukses
-        $this->dispatch('swal', [
-            'icon' => 'success',
-            'title' => 'Berhasil!',
-            'text' => $this->tarifId ? 'Data tarif berhasil diperbarui.' : 'Data tarif berhasil ditambahkan.'
-        ]);
-
-        $this->closeModal();
-    }
-
-    public function delete($id)
-    {
-        TarifHari::findOrFail($id)->delete();
-        
-        // SweetAlert Hapus Sukses
-        $this->dispatch('swal', [
-            'icon' => 'success',
-            'title' => 'Terhapus!',
-            'text' => 'Data tarif berhasil dihapus.'
-        ]);
-    }
-
-    private function resetFields() 
-    { 
-        $this->reset(['tarifId', 'kota_id', 'golongan_id', 'nominal']); 
-        $this->resetValidation(); 
+        return view($this->viewName(), array_merge(
+            ['tarifs' => $tarifs],
+            $this->extraViewData()
+        ))->layout($this->resolveLayout());
     }
 }

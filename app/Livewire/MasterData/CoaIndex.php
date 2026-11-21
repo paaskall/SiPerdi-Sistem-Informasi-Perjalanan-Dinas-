@@ -3,65 +3,45 @@
 namespace App\Livewire\MasterData;
 
 use App\Models\Coa;
-use Livewire\Component;
-use Livewire\WithPagination;
 
-class CoaIndex extends Component
+class CoaIndex extends BaseCrud
 {
-    use WithPagination;
-
-    public $coaId, $kode, $nama, $aktif = true;
-    public $isModalOpen = false;
-    public $search = '';
-
-    protected $rules = [
-        'kode' => 'required|string|max:50|unique:coas,kode',
-        'nama' => 'required|string|max:255',
-        'aktif' => 'boolean',
-    ];
-
-    public function updatingSearch() { $this->resetPage(); }
-
-    public function render()
+    protected function model(): string
     {
-        $coas = Coa::where('kode', 'like', '%'.$this->search.'%')
-            ->orWhere('nama', 'like', '%'.$this->search.'%')
-            ->orderBy('kode')->paginate(10);
-
-    return view('livewire.master-data.coa-index', compact('coas'))->layout(auth()->user()->hasRole('super-admin') ? 'layouts.super-admin' : 'layouts.app');
-
+        return Coa::class;
     }
 
-    public function openModal() { $this->resetFields(); $this->isModalOpen = true; }
-    public function closeModal() { $this->isModalOpen = false; $this->resetFields(); }
-
-    public function edit($id)
+    protected function fields(): array
     {
-        $coa = Coa::findOrFail($id);
-        $this->coaId = $id;
-        $this->kode = $coa->kode;
-        $this->nama = $coa->nama;
-        $this->aktif = $coa->aktif;
-        $this->rules['kode'] = 'required|string|max:50|unique:coas,kode,'.$id;
-        $this->isModalOpen = true;
+        return ['kode', 'nama', 'aktif'];
     }
 
-    public function save()
+    protected function searchable(): array
     {
-        $this->validate();
-        Coa::updateOrCreate(
-            ['id' => $this->coaId],
-            ['kode' => $this->kode, 'nama' => $this->nama, 'aktif' => $this->aktif]
-        );
-        session()->flash('message', $this->coaId ? 'COA diupdate.' : 'COA ditambahkan.');
-        $this->closeModal();
+        return ['kode', 'nama'];
     }
 
-    public function delete($id)
+    protected function orderBy(): string
     {
-        Coa::findOrFail($id)->delete();
-        session()->flash('message', 'COA dihapus.');
+        return 'kode';
     }
 
-    private function resetFields() { $this->reset(['coaId', 'kode', 'nama', 'aktif']); $this->resetValidation(); }
+    protected function entityLabel(): string
+    {
+        return 'COA';
+    }
+
+    protected function defaultValues(): array
+    {
+        return ['aktif' => true];
+    }
+
+    protected function rules(): array
+    {
+        return [
+            'form.kode' => 'required|string|max:50|unique:coas,kode,' . ($this->modelId ?? 'NULL'),
+            'form.nama' => 'required|string|max:255',
+            'form.aktif' => 'boolean',
+        ];
+    }
 }
